@@ -3,6 +3,7 @@
     <!-- Root Menu -->
     <menuitem id="menu_wasm_root"
               name="عرفة الهندسية"
+              groups="wasm_website.group_wasm_user"
               sequence="1"/>
 
     <!-- Submenus -->

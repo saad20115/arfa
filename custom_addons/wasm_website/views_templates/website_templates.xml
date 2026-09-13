@@ -306,7 +306,9 @@
                         overflow: hidden !important;
                     }
 
-                    .wasm-hero-action-block .d-flex {
+                    .wasm-hero-action-block .d-flex,
+                    .wasm-hero-action-block div.d-flex,
+                    .wasm-hero-action-block .wasm-hero-btn-wrapper {
                         display: flex !important;
                         flex-direction: row !important;
                         flex-wrap: nowrap !important;
@@ -323,25 +325,27 @@
                         scrollbar-width: none !important;
                     }
 
-                    .wasm-hero-action-block .d-flex::-webkit-scrollbar {
+                    .wasm-hero-action-block .d-flex::-webkit-scrollbar,
+                    .wasm-hero-action-block .wasm-hero-btn-wrapper::-webkit-scrollbar {
                         display: none !important;
                     }
 
                     .wasm-hero-btn,
                     .wasm-hero-action-block a.btn {
-                        flex: 0 0 85vw !important;
-                        min-width: 85vw !important;
-                        max-width: 85vw !important;
+                        flex: 0 0 76vw !important;
+                        min-width: 76vw !important;
+                        max-width: 76vw !important;
                         scroll-snap-align: center !important;
                         display: flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        padding: 13px 20px !important;
-                        font-size: 0.95rem !important;
+                        padding: 12px 16px !important;
+                        font-size: 0.9rem !important;
                         font-weight: 800 !important;
                         border-radius: 50px !important;
                         margin: 0 !important;
                         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45) !important;
+                        white-space: nowrap !important;
                     }
 
                     .wasm-hero-action-block a.btn:nth-child(1),
@@ -351,6 +355,54 @@
                     .wasm-hero-action-block a.btn:nth-child(3),
                     .wasm-hero-btn:nth-child(3) {
                         display: flex !important;
+                    }
+
+                    /* Horizontal Snap Slider for 3 Feature Pillar Cards on Mobile */
+                    .wasm-hero-pillars-section {
+                        width: 100% !important;
+                        overflow: hidden !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        padding-top: 10px !important;
+                        padding-bottom: 20px !important;
+                    }
+
+                    .wasm-hero-pillars-section .row {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        flex-wrap: nowrap !important;
+                        overflow-x: auto !important;
+                        scroll-snap-type: x mandatory !important;
+                        scroll-behavior: smooth !important;
+                        -webkit-overflow-scrolling: touch !important;
+                        gap: 16px !important;
+                        padding: 10px 16px 25px 16px !important;
+                        margin: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        justify-content: flex-start !important;
+                        -ms-overflow-style: none !important;
+                        scrollbar-width: none !important;
+                    }
+
+                    .wasm-hero-pillars-section .row::-webkit-scrollbar {
+                        display: none !important;
+                    }
+
+                    .wasm-hero-pillars-section .row > div[class*="col-"] {
+                        flex: 0 0 85vw !important;
+                        min-width: 85vw !important;
+                        max-width: 85vw !important;
+                        scroll-snap-align: center !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+
+                    .wasm-hero-pillars-section .wasm-pillar-card {
+                        height: 100% !important;
+                        border-radius: 20px !important;
+                        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15) !important;
+                        border: 1px solid #e2e8f0 !important;
                     }
                 }
             ]]>
@@ -532,16 +584,16 @@
                                     <span class="wasm-hero-subtitle">Engineering Excellence &amp; Integrated Construction Solutions</span>
                                 </h1>
                                 <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-if="is_en" data-typewriter-text="ARAFA SPECIALIZED SYSTEMS IS YOUR PREMIER PARTNER IN ENGINEERING AND CONSTRUCTION, DELIVERING ADVANCED BUILDING TECHNOLOGIES AND LEADING-EDGE ENERGY SOLUTIONS.">
-                                    <span class="wasm-typewriter-content"></span><span class="wasm-typewriter-cursor">|</span>
+                                    <span class="wasm-typewriter-content">ARAFA SPECIALIZED SYSTEMS IS YOUR PREMIER PARTNER IN ENGINEERING AND CONSTRUCTION, DELIVERING ADVANCED BUILDING TECHNOLOGIES AND LEADING-EDGE ENERGY SOLUTIONS.</span><span class="wasm-typewriter-cursor">|</span>
                                 </p>
-                                <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-else="" data-typewriter-text="ARFA SPECIALIZED SYSTEMS is your premier engineering and construction partner, delivering advanced building technology and MEP solutions.">
-                                    <span class="wasm-typewriter-content"></span><span class="wasm-typewriter-cursor">|</span>
+                                <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-else="" data-typewriter-text="شركة عرفة للأنظمة المتخصصة هي شريكك الهندسي والإنشائي الأول، حيث تقدم أحدث تقنيات البناء وحلول الكهروميكانيك والمباني الذكية.">
+                                    <span class="wasm-typewriter-content">شركة عرفة للأنظمة المتخصصة هي شريكك الهندسي والإنشائي الأول، حيث تقدم أحدث تقنيات البناء وحلول الكهروميكانيك والمباني الذكية.</span><span class="wasm-typewriter-cursor">|</span>
                                 </p>
                             </div>
 
                             <!-- Vertical Action Buttons Column (Left Side in RTL) -->
                             <div class="col-lg-4 text-center text-lg-end wasm-hero-action-block">
-                                <div class="d-flex flex-column gap-3 mx-auto ms-lg-auto" style="max-width: 380px;">
+                                <div class="d-flex flex-column gap-3 mx-auto ms-lg-auto wasm-hero-btn-wrapper">
                                     <a href="/quote" class="btn wasm-hero-btn wasm-hero-btn-1 wasm-anim-item wasm-anim-delay-4">
                                         <svg class="wasm-btn-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <rect x="4" y="2" width="16" height="20" rx="2"></rect>
