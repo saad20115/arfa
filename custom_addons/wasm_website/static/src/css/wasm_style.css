@@ -2423,3 +2423,236 @@ header .navbar-brand.logo { padding-top: 4px !important; padding-bottom: 4px !im
     header .navbar-brand.logo img { height: 52px !important; max-height: 52px !important; max-width: 104px !important; }
 }
 .wasm-footer-logo { height: 96px !important; width: auto !important; }
+
+/* =====================================================================
+   v19.0.1.1.3 — IDENTITY PASS (navy + client's gold), header sizing
+   All selectors are CSS-only so they apply even to pages that were
+   saved from the Website Builder (website-specific template copies).
+   ===================================================================== */
+
+/* ---------- Header: slightly wider logo, larger menu text ---------- */
+header#top .navbar-brand.logo img,
+header .navbar-brand.logo img,
+header .navbar-brand.logo span[role="img"] img {
+    height: 80px !important;
+    max-height: 80px !important;
+    max-width: 165px !important;
+}
+header#top .navbar-nav .nav-link,
+header#top #top_menu > li > a,
+.o_header_standard .nav-link,
+.o_header_standard .nav-item > a {
+    font-size: 1.02rem !important;      /* ~16.3px (was 14.4px) */
+    font-weight: 700 !important;
+    padding: 8px 12px !important;
+    letter-spacing: 0.1px !important;
+    color: var(--arfa-navy) !important;
+}
+header#top .btn_cta,
+header .btn_cta {
+    font-size: 1rem !important;
+    padding: 11px 24px !important;
+    background: var(--arfa-gold-gradient) !important;
+    border: none !important;
+    color: var(--arfa-navy) !important;
+    border-radius: 50px !important;
+    font-weight: 800 !important;
+}
+header#top .btn_cta:hover,
+header .btn_cta:hover { background: var(--arfa-navy) !important; color: #ffffff !important; }
+@media (max-width: 1700px) {
+    header#top .navbar-nav .nav-link,
+    header#top #top_menu > li > a,
+    .o_header_standard .nav-link { font-size: 0.98rem !important; padding: 8px 9px !important; }
+}
+@media (max-width: 1500px) {
+    header#top a[href^="tel:"] { display: none !important; }
+}
+@media (max-width: 1360px) {
+    header#top .navbar-brand.logo img,
+    header .navbar-brand.logo img { height: 68px !important; max-height: 68px !important; max-width: 140px !important; }
+    header#top .navbar-nav .nav-link,
+    header#top #top_menu > li > a,
+    .o_header_standard .nav-link { font-size: 0.92rem !important; padding: 8px 7px !important; }
+}
+@media (max-width: 991.98px) {
+    header#top .navbar-brand.logo img,
+    header .navbar-brand.logo img { height: 54px !important; max-height: 54px !important; max-width: 110px !important; }
+}
+header#top { box-shadow: 0 2px 0 var(--arfa-gold), 0 8px 24px rgba(25, 39, 84, 0.06) !important; }
+
+/* ---------- Section rhythm on every page: white / soft navy tint ---------- */
+:root { --arfa-tint: #F4F6FB; --arfa-navy-deep: #121D42; }
+#wrap > section:nth-of-type(even):not(.wasm-hero-banner):not(.wasm-fluid-hero-section) {
+    background: var(--arfa-tint) !important;
+    background-color: var(--arfa-tint) !important;
+}
+
+/* ---------- Homepage: navy bands for "Why choose" and testimonials ---------- */
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(2) { background: #ffffff !important; background-color: #ffffff !important; }
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(3) { background: var(--arfa-tint) !important; background-color: var(--arfa-tint) !important; }
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(4),
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section#testimonials {
+    background: radial-gradient(900px 380px at 100% 0%, rgba(242, 185, 30, 0.10) 0%, rgba(242, 185, 30, 0) 70%), var(--arfa-navy) !important;
+    background-color: var(--arfa-navy) !important;
+}
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(5) { background: #ffffff !important; background-color: #ffffff !important; }
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(6) { background: var(--arfa-tint) !important; background-color: var(--arfa-tint) !important; }
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(8) { background: #ffffff !important; background-color: #ffffff !important; }
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(9) { background: var(--arfa-tint) !important; background-color: var(--arfa-tint) !important; }
+
+/* Section headers sitting on navy */
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(4) > .container > .text-center .wasm-section-title,
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section#testimonials > .container > .text-center .wasm-section-title {
+    color: #ffffff !important;
+}
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(4) > .container > .text-center p,
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section#testimonials > .container > .text-center p {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section:nth-of-type(4) .card,
+#wrapwrap #wrap:has(> .wasm-hero-banner) > section#testimonials .wasm-hover-card {
+    border: 1px solid rgba(242, 185, 30, 0.25) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Section titles everywhere */
+.wasm-section-title { letter-spacing: -0.2px !important; }
+.wasm-section-title::after { width: 72px !important; height: 4px !important; }
+
+/* Cards: gold accent on hover, never orange */
+.wasm-hover-card { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease !important; }
+.wasm-hover-card:hover { transform: translateY(-4px) !important; box-shadow: 0 18px 40px rgba(25, 39, 84, 0.14) !important; }
+
+/* Stats */
+.wasm-stat-box { background: #ffffff !important; border-radius: 14px !important; box-shadow: 0 10px 30px rgba(25, 39, 84, 0.08) !important; }
+
+/* ---------- Footer: navy band, dark logo, gold accents ---------- */
+.wasm-footer,
+#footer.wasm-footer {
+    background: var(--arfa-navy) !important;
+    color: rgba(255, 255, 255, 0.78) !important;
+    box-shadow: none !important;
+    border-top: 4px solid var(--arfa-gold) !important;
+}
+.wasm-footer .wasm-footer-title { color: var(--arfa-gold-bright) !important; letter-spacing: 0.3px !important; }
+.wasm-footer .col-lg-4 > .wasm-footer-title:first-child {
+    font-size: 0 !important;
+    color: transparent !important;
+    height: 92px;
+    background: url("/wasm_website/static/src/img/arfa_logo_stacked_dark.svg") left center / contain no-repeat;
+}
+html[dir="rtl"] .wasm-footer .col-lg-4 > .wasm-footer-title:first-child { background-position: right center; }
+.wasm-footer img.wasm-footer-logo { content: url("/wasm_website/static/src/img/arfa_logo_stacked_dark.svg"); }
+.wasm-footer .wasm-footer-desc,
+.wasm-footer .wasm-footer-contact,
+.wasm-footer .wasm-footer-contact span { color: rgba(255, 255, 255, 0.78) !important; }
+.wasm-footer .wasm-footer-link,
+.wasm-footer .wasm-footer-contact a,
+.wasm-footer a.text-dark { color: rgba(255, 255, 255, 0.85) !important; }
+.wasm-footer .wasm-footer-link:hover,
+.wasm-footer .wasm-footer-contact a:hover,
+.wasm-footer a.text-dark:hover { color: var(--arfa-gold-bright) !important; }
+.wasm-footer .wasm-footer-icon { color: var(--arfa-gold-bright) !important; }
+.wasm-footer .wasm-social-icon {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+}
+.wasm-footer .wasm-social-icon:hover { background: var(--arfa-gold-gradient) !important; color: var(--arfa-navy) !important; border-color: transparent !important; }
+.wasm-footer-bottom,
+.wasm-footer .wasm-footer-bottom {
+    background: var(--arfa-navy-deep) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+footer.o_footer, .o_footer { background: var(--arfa-navy) !important; }
+.o_footer_copyright { background: var(--arfa-navy-deep) !important; color: rgba(255, 255, 255, 0.7) !important; }
+
+/* Floating chat / CTA bubble in brand colors */
+.wasm-floating-master-btn { background: var(--arfa-gold-gradient) !important; box-shadow: 0 10px 24px rgba(25, 39, 84, 0.25) !important; }
+
+/* ---------- Hero buttons: one gold primary + white outline secondaries ---------- */
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-2,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-3 {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 2px solid rgba(255, 255, 255, 0.85) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-2 svg,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-3 svg { color: #ffffff !important; stroke: currentColor !important; }
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-2:hover,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-3:hover,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-2:focus-visible,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-3:focus-visible {
+    background: var(--arfa-gold-gradient) !important;
+    border-color: transparent !important;
+    color: var(--arfa-navy) !important;
+}
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-2:hover svg,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-3:hover svg { color: var(--arfa-navy) !important; }
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-1 {
+    border: 2px solid transparent !important;
+    box-shadow: 0 10px 28px rgba(232, 163, 23, 0.35) !important;
+}
+
+/* Mobile drawer CTA: navy text on gold for contrast */
+#wrapwrap .offcanvas .btn_cta,
+#wrapwrap #top_menu_collapse_mobile .btn_cta,
+#wrapwrap .offcanvas .btn-primary { color: var(--arfa-navy) !important; text-transform: none !important; }
+
+/* ---------- Main menu: larger text (v19.0.1.1.4) ---------- */
+header#top .navbar-nav .nav-link,
+header#top #top_menu > li > a,
+.o_header_standard .nav-link,
+.o_header_standard .nav-item > a {
+    font-size: 1.14rem !important;      /* ~18px */
+    padding: 8px 12px !important;
+}
+@media (max-width: 1700px) {
+    header#top .navbar-nav .nav-link,
+    header#top #top_menu > li > a,
+    .o_header_standard .nav-link { font-size: 1.1rem !important; padding: 8px 10px !important; }
+}
+@media (max-width: 1500px) {
+    header#top .navbar-nav .nav-link,
+    header#top #top_menu > li > a,
+    .o_header_standard .nav-link { font-size: 1.04rem !important; padding: 8px 8px !important; }
+}
+@media (max-width: 1360px) {
+    header#top .navbar-nav .nav-link,
+    header#top #top_menu > li > a,
+    .o_header_standard .nav-link { font-size: 0.98rem !important; padding: 8px 6px !important; }
+}
+header#top a[href^="tel:"] { font-size: 1rem !important; }
+header#top .btn_cta, header .btn_cta { font-size: 1.05rem !important; padding: 12px 26px !important; }
+
+/* ---------- Hero: all three buttons transparent outline, gold on hover ---------- */
+#wrapwrap .wasm-hero-banner .wasm-hero-btn,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-1,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-2,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn-3 {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 2px solid rgba(255, 255, 255, 0.85) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    transition: background-color .25s ease, border-color .25s ease, color .25s ease, transform .25s ease, box-shadow .25s ease !important;
+}
+#wrapwrap .wasm-hero-banner .wasm-hero-btn svg { color: currentColor !important; stroke: currentColor !important; }
+#wrapwrap .wasm-hero-banner .wasm-hero-btn:hover,
+#wrapwrap .wasm-hero-banner .wasm-hero-btn:focus-visible {
+    background: var(--arfa-gold-gradient) !important;
+    background-image: var(--arfa-gold-gradient) !important;
+    border-color: var(--arfa-gold-bright) !important;
+    color: var(--arfa-navy) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 10px 26px rgba(232, 163, 23, 0.35) !important;
+}
+#wrapwrap .wasm-hero-banner .wasm-hero-btn:active { transform: translateY(0) !important; }
+#wrapwrap .wasm-hero-banner .wasm-hero-btn:focus-visible { outline: 2px solid #ffffff !important; outline-offset: 3px !important; }

@@ -31,6 +31,14 @@
         delete el.dataset.typewriterInitialized; // legacy flag saved by the old script
         var text = (el.getAttribute('data-typewriter-text') || el.textContent || '').trim();
         if (!text) return;
+        // Long ALL-CAPS paragraphs (saved that way in older page copies) are hard to read:
+        // show them in sentence case, keeping the company name in capitals.
+        if (text.length > 40 && text === text.toUpperCase() && /[A-Z]/.test(text)) {
+            text = text.toLowerCase()
+                .replace(/(^\s*[a-z]|[.!?]\s+[a-z])/g, function (c) { return c.toUpperCase(); })
+                .replace(/\bara?fa specialized systems\b/gi, 'ARFA Specialized Systems')
+                .replace(/\bara?fa\b/gi, 'ARFA');
+        }
 
         var s = { originalHTML: el.innerHTML, timer: null, stopped: false };
         state.set(el, s);

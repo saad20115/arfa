@@ -116,11 +116,61 @@
         place(false);
     }
 
+    /*
+     * Hero pillar cards (3 cards under the hero): on phones / small screens the
+     * row is a horizontal scroll-snap strip. Move it automatically one card at a
+     * time, like the sliders below. Native scrolling is used, so swiping by hand
+     * still works; the auto-move pauses while the visitor touches or hovers it.
+     */
+    var PILLAR_ROW = '.wasm-hero-pillars-section .row';
+    var SMALL_SCREEN = window.matchMedia ? window.matchMedia('(max-width: 991.98px)') : null;
+    var pillarState = new WeakMap();
+
+    function stopPillars(row) {
+        var s = pillarState.get(row);
+        if (!s) return;
+        clearInterval(s.timer);
+        ['touchstart', 'mouseenter'].forEach(function (ev) { row.removeEventListener(ev, s.pause); });
+        ['touchend', 'mouseleave'].forEach(function (ev) { row.removeEventListener(ev, s.resume); });
+        pillarState.delete(row);
+    }
+
+    function startPillars(row) {
+        if (pillarState.has(row) || row.children.length <= 1) return;
+        var s = { paused: false, resumeAt: 0 };
+        s.pause = function () { s.paused = true; };
+        s.resume = function () { s.paused = false; s.resumeAt = Date.now() + 2500; };
+        s.timer = setInterval(function () {
+            if (s.paused || document.hidden || Date.now() < s.resumeAt) return;
+            var first = row.children[0];
+            var gap = parseFloat(getComputedStyle(row).columnGap) || 16;
+            var step = first.getBoundingClientRect().width + gap;
+            var dir = isRTL() ? -1 : 1;
+            var atEnd = Math.abs(row.scrollLeft) + row.clientWidth >= row.scrollWidth - 8;
+            if (atEnd) {
+                row.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                row.scrollBy({ left: dir * step, behavior: 'smooth' });
+            }
+        }, STEP_MS + 600);
+        ['touchstart', 'mouseenter'].forEach(function (ev) { row.addEventListener(ev, s.pause, { passive: true }); });
+        ['touchend', 'mouseleave'].forEach(function (ev) { row.addEventListener(ev, s.resume, { passive: true }); });
+        pillarState.set(row, s);
+    }
+
+    function refreshPillars(edit) {
+        var small = SMALL_SCREEN ? SMALL_SCREEN.matches : window.innerWidth < 992;
+        document.querySelectorAll(PILLAR_ROW).forEach(function (row) {
+            if (edit || !small) { stopPillars(row); } else { startPillars(row); }
+        });
+    }
+
     function refresh() {
         var edit = isEditMode();
         document.querySelectorAll(SLIDER_SELECTOR).forEach(function (s) {
             if (edit) { stopSlider(s); } else { startSlider(s); }
         });
+        refreshPillars(edit);
     }
 
     function boot() {
@@ -128,6 +178,10 @@
         // React when the Website Builder toggles edit mode on this document.
         if (window.MutationObserver && document.body) {
             new MutationObserver(refresh).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        }
+        if (SMALL_SCREEN) {
+            var onChange = function () { refreshPillars(isEditMode()); };
+            if (SMALL_SCREEN.addEventListener) { SMALL_SCREEN.addEventListener('change', onChange); } else { SMALL_SCREEN.addListener(onChange); }
         }
     }
 
