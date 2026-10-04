@@ -127,6 +127,22 @@
                 #top_menu {
                     background: #ffffff !important;
                     background-color: #ffffff !important;
+                    width: 100% !important;
+                    max-width: 100vw !important;
+                    overflow: visible !important;
+                    box-sizing: border-box !important;
+                }
+
+                header#top .container,
+                .o_header_standard .container,
+                #top_menu_container .container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    padding-left: 15px !important;
+                    padding-right: 15px !important;
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+                    box-sizing: border-box !important;
                 }
 
                 /* Mobile Offcanvas Drawer Solid Background & Styling */
@@ -286,65 +302,67 @@
                         color: #ffffff !important;
                         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
                     }
-                    .wasm-hero-lead {
-                        font-size: 0.9rem !important;
-                        margin-top: 8px !important;
-                        line-height: 1.4 !important;
+                    .wasm-hero-lead,
+                    .wasm-typewriter-target {
+                        font-size: 0.95rem !important;
+                        margin-top: 12px !important;
+                        line-height: 1.5 !important;
                         color: #ffffff !important;
                         font-weight: 700 !important;
                         text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95) !important;
+                        padding-left: 24px !important;
+                        padding-right: 24px !important;
+                        box-sizing: border-box !important;
+                        width: 100% !important;
+                        text-align: center !important;
                     }
                     .wasm-typewriter-content {
                         color: #ffffff !important;
                         text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95) !important;
                     }
 
-                    /* Horizontal Snap Slider for 3 CTA Cards on Mobile */
+                    /* Vertical Stacked & Centered 3 CTA Action Buttons on Mobile */
                     .wasm-hero-action-block {
-                        margin-top: 10px !important;
+                        margin-top: 20px !important;
                         width: 100% !important;
-                        overflow: hidden !important;
+                        display: flex !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        text-align: center !important;
                     }
 
                     .wasm-hero-action-block .d-flex,
                     .wasm-hero-action-block div.d-flex,
                     .wasm-hero-action-block .wasm-hero-btn-wrapper {
                         display: flex !important;
-                        flex-direction: row !important;
+                        flex-direction: column !important;
                         flex-wrap: nowrap !important;
-                        overflow-x: auto !important;
-                        scroll-snap-type: x mandatory !important;
-                        scroll-behavior: smooth !important;
-                        -webkit-overflow-scrolling: touch !important;
+                        overflow-x: visible !important;
                         gap: 12px !important;
-                        padding: 8px 16px 16px 16px !important;
-                        max-width: 100% !important;
+                        padding: 0 20px !important;
                         width: 100% !important;
-                        justify-content: flex-start !important;
-                        -ms-overflow-style: none !important;
-                        scrollbar-width: none !important;
-                    }
-
-                    .wasm-hero-action-block .d-flex::-webkit-scrollbar,
-                    .wasm-hero-action-block .wasm-hero-btn-wrapper::-webkit-scrollbar {
-                        display: none !important;
+                        max-width: 360px !important;
+                        margin: 0 auto !important;
+                        align-items: center !important;
+                        justify-content: center !important;
                     }
 
                     .wasm-hero-btn,
                     .wasm-hero-action-block a.btn {
-                        flex: 0 0 76vw !important;
-                        min-width: 76vw !important;
-                        max-width: 76vw !important;
-                        scroll-snap-align: center !important;
+                        flex: 0 0 auto !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: 340px !important;
                         display: flex !important;
                         align-items: center !important;
                         justify-content: center !important;
-                        padding: 12px 16px !important;
-                        font-size: 0.9rem !important;
+                        padding: 13px 20px !important;
+                        font-size: 0.95rem !important;
                         font-weight: 800 !important;
                         border-radius: 50px !important;
-                        margin: 0 !important;
+                        margin: 0 auto !important;
                         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45) !important;
+                        text-align: center !important;
                         white-space: nowrap !important;
                     }
 
@@ -355,6 +373,8 @@
                     .wasm-hero-action-block a.btn:nth-child(3),
                     .wasm-hero-btn:nth-child(3) {
                         display: flex !important;
+                        width: 100% !important;
+                        max-width: 340px !important;
                     }
 
                     /* Horizontal Snap Slider for 3 Feature Pillar Cards on Mobile */
