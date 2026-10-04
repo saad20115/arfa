@@ -5,6 +5,8 @@ import os
 from odoo import http, _
 from odoo.http import request
 
+from odoo.addons.wasm_website.models.wasm_site_config import DEFAULT_IMAGES
+
 _logger = logging.getLogger(__name__)
 
 ALLOWED_CUSTOMER_TYPES = ('individual', 'company', 'government')
@@ -65,40 +67,59 @@ class WasmWebsiteController(http.Controller):
         }
         return request.render('wasm_website.home_page_template', values)
 
+    # ------------------------------------------------------------------
+    # Binary streaming helper
+    # ------------------------------------------------------------------
+    def _wasm_stream(self, record, field_name, fallback_url=None, mimetype=None,
+                     filename=None, default_mimetype='image/png', as_attachment=False):
+        """Stream a binary/image field efficiently.
+
+        Uses Odoo's ir.binary streaming: the file is served straight from the
+        filestore (no base64 decode of the whole file in Python), with the right
+        mimetype, ETag / 304 support and HTTP Range support (needed for video).
+        When the request carries ?unique=..., the response is cached by the
+        browser for a year (the templates change the token on every save).
+        """
+        if record and record.exists() and record[field_name]:
+            unique = bool(request.params.get('unique'))
+            try:
+                binary = request.env['ir.binary']
+                if default_mimetype.startswith('image/') and not mimetype:
+                    stream = binary._get_image_stream_from(record, field_name, filename=filename)
+                else:
+                    stream = binary._get_stream_from(record, field_name, filename=filename,
+                                                     mimetype=mimetype, default_mimetype=default_mimetype)
+                return stream.get_response(as_attachment=as_attachment, immutable=unique)
+            except Exception:  # safety net: keep the page working even if the API changes
+                _logger.exception('wasm_website: streaming %s.%s failed, using fallback', record._name, field_name)
+                data = base64.b64decode(record[field_name])
+                return request.make_response(data, headers=[
+                    ('Content-Type', mimetype or default_mimetype),
+                    ('Content-Length', str(len(data))),
+                    ('Cache-Control', 'public, max-age=31536000, immutable' if unique else 'no-cache'),
+                ])
+        if fallback_url:
+            return request.redirect(fallback_url, local=fallback_url.startswith('/'))
+        return request.not_found()
+
+    @http.route('/wasm/config/image/<string:field_name>', type='http', auth='public')
+    def wasm_config_image(self, field_name, **kw):
+        config = request.env['wasm.site.config'].sudo().get_config()
+        field = config._fields.get(field_name)
+        if not field or field.type != 'binary' or field_name not in DEFAULT_IMAGES:
+            return request.not_found()
+        return self._wasm_stream(config, field_name, fallback_url=DEFAULT_IMAGES.get(field_name) or None)
+
     @http.route('/wasm/partner/<int:partner_id>/logo', type='http', auth='public')
     def wasm_partner_logo_stream(self, partner_id, **kw):
         partner = request.env['wasm.partner'].sudo().browse(partner_id)
-        if partner.exists() and partner.logo:
-            image_data = base64.b64decode(partner.logo)
-            return request.make_response(
-                image_data,
-                headers=[
-                    ('Content-Type', 'image/png'),
-                    ('Content-Length', str(len(image_data))),
-                    ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                ]
-            )
-        elif partner.exists() and partner.logo_url:
-            return request.redirect(partner.logo_url)
-        return request.make_response(b'', headers=[('Content-Type', 'image/png')], status=404)
+        if partner.exists() and not partner.logo and partner.logo_url:
+            return request.redirect(partner.logo_url, local=False)
+        return self._wasm_stream(partner, 'logo')
 
     @http.route('/wasm/project/<int:project_id>/image', type='http', auth='public')
     def wasm_project_image_stream(self, project_id, **kw):
         project = request.env['wasm.project'].sudo().browse(project_id)
-        if project.exists() and project.image:
-            try:
-                data = base64.b64decode(project.image)
-            except Exception:
-                data = project.image if isinstance(project.image, bytes) else project.image.encode('utf-8')
-            if data:
-                return request.make_response(
-                    data,
-                    headers=[
-                        ('Content-Type', 'image/jpeg'),
-                        ('Content-Length', str(len(data))),
-                        ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                    ]
-                )
         defaults = {
             47: '/wasm_website/static/src/img/project_conference_ritz.jpg',
             48: '/wasm_website/static/src/img/project_qirwan_kitchen.jpg',
@@ -109,109 +130,26 @@ class WasmWebsiteController(http.Controller):
             53: '/wasm_website/static/src/img/project_sofitel_makkah.jpg',
             54: '/wasm_website/static/src/img/project_ramada_meridien.jpg',
         }
-        return request.redirect(defaults.get(project_id, '/wasm_website/static/src/img/project_conference_ritz.jpg'))
-
+        return self._wasm_stream(project, 'image',
+                                 fallback_url=defaults.get(project_id, '/wasm_website/static/src/img/project_conference_ritz.jpg'))
 
     @http.route('/wasm/pillar/<int:pillar_num>/image', type='http', auth='public')
     def wasm_pillar_image_stream(self, pillar_num, **kw):
-        config = request.env['wasm.site.config'].sudo().get_config()
-        field_name = f'pillar{pillar_num}_img'
-        if config and hasattr(config, field_name):
-            img_data = getattr(config, field_name)
-            if img_data:
-                data = base64.b64decode(img_data)
-                headers = [
-                    ('Content-Type', 'image/png'),
-                    ('Content-Length', str(len(data))),
-                    ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                ]
-                return request.make_response(data, headers=headers)
-        
-        defaults = {
-            1: '/wasm_website/static/src/img/pillar_civil.png',
-            2: '/wasm_website/static/src/img/pillar_mep.png',
-            3: '/wasm_website/static/src/img/pillar_mgmt.png',
-        }
-        return request.redirect(defaults.get(pillar_num, '/wasm_website/static/src/img/pillar_civil.png'))
+        """Kept for old links; templates now use site_config.wasm_img_url()."""
+        return self.wasm_config_image('pillar%d_img' % pillar_num)
 
     @http.route('/wasm/why/<int:card_num>/image', type='http', auth='public')
     def wasm_why_card_image_stream(self, card_num, **kw):
-        config = request.env['wasm.site.config'].sudo().get_config()
-        field_name = f'why{card_num}_img'
-        if config and hasattr(config, field_name):
-            img_data = getattr(config, field_name)
-            if img_data:
-                data = base64.b64decode(img_data)
-                headers = [
-                    ('Content-Type', 'image/png'),
-                    ('Content-Length', str(len(data))),
-                    ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                ]
-                return request.make_response(data, headers=headers)
-        
-        defaults = {
-            1: '/wasm_website/static/src/img/why_sbc.png',
-            2: '/wasm_website/static/src/img/why_bim.png',
-            3: '/wasm_website/static/src/img/why_machinery.png',
-            4: '/wasm_website/static/src/img/why_timelines.png',
-            5: '/wasm_website/static/src/img/why_qc.png',
-            6: '/wasm_website/static/src/img/why_safety.png',
-        }
-        return request.redirect(defaults.get(card_num, '/wasm_website/static/src/img/why_sbc.png'))
+        """Kept for old links; templates now use site_config.wasm_img_url()."""
+        return self.wasm_config_image('why%d_img' % card_num)
 
     @http.route(['/wasm/service_card/<int:card_num>/image', '/wasm/service/<int:service_id>/image'], type='http', auth='public')
     def wasm_service_card_image_stream(self, card_num=None, service_id=None, **kw):
-        # 1. Direct wasm.service lookup by ID if provided
         if service_id:
             service = request.env['wasm.service'].sudo().browse(service_id)
-            if service.exists() and service.image:
-                data = base64.b64decode(service.image)
-                headers = [
-                    ('Content-Type', 'image/png'),
-                    ('Content-Length', str(len(data))),
-                    ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                ]
-                return request.make_response(data, headers=headers)
-
-        # 2. Check site config srv{card_num}_img
-        if card_num:
-            config = request.env['wasm.site.config'].sudo().get_config()
-            field_name = f'srv{card_num}_img'
-            if config and hasattr(config, field_name):
-                img_data = getattr(config, field_name)
-                if img_data:
-                    data = base64.b64decode(img_data)
-                    headers = [
-                        ('Content-Type', 'image/png'),
-                        ('Content-Length', str(len(data))),
-                        ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                    ]
-                    return request.make_response(data, headers=headers)
-
-            # 3. Fallback to wasm.service by list index
-            services = request.env['wasm.service'].sudo().search([('active', '=', True)], order='sequence, id')
-            if len(services) >= card_num:
-                target_service = services[card_num - 1]
-                if target_service.image:
-                    data = base64.b64decode(target_service.image)
-                    headers = [
-                        ('Content-Type', 'image/png'),
-                        ('Content-Length', str(len(data))),
-                        ('Cache-Control', 'no-cache, must-revalidate, max-age=0'),
-                    ]
-                    return request.make_response(data, headers=headers)
-
-        defaults = {
-            1: '/wasm_website/static/src/img/arfa_exhibition_building.webp',
-            2: '/wasm_website/static/src/img/arfa_electrical_panels.webp',
-            3: '/wasm_website/static/src/img/service_card_3.jpg',
-            4: '/wasm_website/static/src/img/service_card_4.jpg',
-            5: '/wasm_website/static/src/img/service_card_5.jpg',
-            6: '/wasm_website/static/src/img/service_card_6.jpg',
-            7: '/wasm_website/static/src/img/service_card_7.jpg',
-            8: '/wasm_website/static/src/img/service_card_8.jpg',
-        }
-        return request.redirect(defaults.get(card_num or 1, '/wasm_website/static/src/img/arfa_exhibition_building.webp'))
+            return self._wasm_stream(service, 'image',
+                                     fallback_url='/wasm_website/static/src/img/arfa_exhibition_building.webp')
+        return self.wasm_config_image('srv%d_img' % (card_num or 1))
 
     # --- Service Subpage Routes matching website navigation tabs ---
     @http.route([
@@ -497,67 +435,20 @@ class WasmWebsiteController(http.Controller):
     @http.route('/wasm/video/showcase', type='http', auth='public')
     def wasm_showcase_video_stream(self, **kw):
         config = request.env['wasm.site.config'].sudo().get_config()
-        if config and config.showcase_video_file:
-            video_data = base64.b64decode(config.showcase_video_file)
-            total_size = len(video_data)
-
-            # Support HTTP Range headers for ultra-fast instant video playback
-            range_header = request.httprequest.headers.get('Range')
-            if range_header and range_header.startswith('bytes='):
-                try:
-                    ranges = range_header.replace('bytes=', '').split('-')
-                    start = int(ranges[0]) if ranges[0] else 0
-                    end = int(ranges[1]) if len(ranges) > 1 and ranges[1] else total_size - 1
-                    if start >= total_size:
-                        start = 0
-                    if end >= total_size:
-                        end = total_size - 1
-                    chunk = video_data[start:end + 1]
-                    headers = [
-                        ('Content-Type', 'video/mp4'),
-                        ('Content-Length', str(len(chunk))),
-                        ('Content-Range', f'bytes {start}-{end}/{total_size}'),
-                        ('Accept-Ranges', 'bytes'),
-                        ('Cache-Control', 'public, max-age=86400'),
-                    ]
-                    return request.make_response(chunk, headers=headers, status=206)
-                except Exception:
-                    pass
-
-            headers = [
-                ('Content-Type', 'video/mp4'),
-                ('Content-Length', str(total_size)),
-                ('Accept-Ranges', 'bytes'),
-                ('Cache-Control', 'public, max-age=86400'),
-            ]
-            return request.make_response(video_data, headers=headers)
-        return request.redirect(config.showcase_video_url or '/wasm_website/static/src/video/hero_construction.mp4')
+        fallback = config.showcase_video_url or '/wasm_website/static/src/video/hero_construction.mp4'
+        return self._wasm_stream(config, 'showcase_video_file', fallback_url=fallback,
+                                 mimetype='video/mp4', default_mimetype='video/mp4',
+                                 filename=config.showcase_video_filename or 'showcase.mp4')
 
     @http.route('/wasm/video/poster', type='http', auth='public')
     def wasm_showcase_poster_stream(self, **kw):
         config = request.env['wasm.site.config'].sudo().get_config()
-        if config and config.showcase_poster:
-            poster_data = base64.b64decode(config.showcase_poster)
-            headers = [
-                ('Content-Type', 'image/png'),
-                ('Content-Length', str(len(poster_data))),
-                ('Cache-Control', 'public, max-age=86400'),
-            ]
-            return request.make_response(poster_data, headers=headers)
-        return request.make_response(b'', [('Content-Type', 'image/png')], status=204)
+        return self._wasm_stream(config, 'showcase_poster')
 
     @http.route('/wasm/video/bg', type='http', auth='public')
     def wasm_showcase_bg_stream(self, **kw):
         config = request.env['wasm.site.config'].sudo().get_config()
-        if config and config.showcase_bg_image:
-            bg_data = base64.b64decode(config.showcase_bg_image)
-            headers = [
-                ('Content-Type', 'image/png'),
-                ('Content-Length', len(bg_data)),
-                ('Cache-Control', 'public, max-age=86400'),
-            ]
-            return request.make_response(bg_data, headers=headers)
-        return request.make_response(b'', headers=[('Content-Type', 'image/png')])
+        return self._wasm_stream(config, 'showcase_bg_image')
 
     @http.route(['/about', '/about-us'], type='http', auth='public', website=True)
     def wasm_about(self, **kw):
@@ -571,31 +462,14 @@ class WasmWebsiteController(http.Controller):
         }
         return request.render('wasm_website.our_company_page_template', values)
 
-    @http.route(['/company-profile', '/company-profile.pdf', '/download/company-profile'], type='http', auth='public', website=True)
+    @http.route(['/company-profile', '/company-profile.pdf', '/download/company-profile'], type='http', auth='public', website=True, sitemap=False)
     def wasm_company_profile_download(self, **kw):
         config = request.env['wasm.site.config'].sudo().get_config()
-        if config and config.company_profile_pdf:
-            pdf_content = base64.b64decode(config.company_profile_pdf)
-            filename = config.company_profile_filename or 'Arfa_Company_Profile_2026.pdf'
-            headers = [
-                ('Content-Type', 'application/pdf'),
-                ('Content-Disposition', f'inline; filename="{filename}"'),
-                ('Content-Length', str(len(pdf_content))),
-                ('Cache-Control', 'public, max-age=86400'),
-            ]
-            return request.make_response(pdf_content, headers=headers)
-
-        pdf_path = os.path.join(os.path.dirname(__file__), '../static/src/pdf/arfa_company_profile.pdf')
-        if os.path.exists(pdf_path):
-            with open(pdf_path, 'rb') as f:
-                pdf_content = f.read()
-            headers = [
-                ('Content-Type', 'application/pdf'),
-                ('Content-Disposition', 'inline; filename="Arfa_Company_Profile_2026.pdf"'),
-                ('Content-Length', str(len(pdf_content))),
-                ('Cache-Control', 'public, max-age=86400'),
-            ]
-            return request.make_response(pdf_content, headers=headers)
+        if config.company_profile_pdf:
+            return self._wasm_stream(config, 'company_profile_pdf', mimetype='application/pdf',
+                                     default_mimetype='application/pdf',
+                                     filename=config.company_profile_filename or 'Arfa_Company_Profile_2026.pdf')
+        # Bundled file: served by the static file handler (streamed, cached, range requests).
         return request.redirect('/wasm_website/static/src/pdf/arfa_company_profile.pdf')
 
     @http.route(['/services', '/our-services'], type='http', auth='public', website=True)
@@ -895,32 +769,11 @@ Sitemap: https://arfa-sa.com/sitemap.xml
     @http.route('/wasm/news/<int:news_id>/image', type='http', auth='public')
     def wasm_news_image_stream(self, news_id, **kw):
         news = request.env['wasm.news'].sudo().browse(news_id)
-        if news.exists() and news.image:
-            data = base64.b64decode(news.image)
-            return request.make_response(
-                data,
-                headers=[
-                    ('Content-Type', 'image/jpeg'),
-                    ('Content-Length', str(len(data))),
-                    ('Cache-Control', 'public, max-age=86400'),
-                ]
-            )
-        return request.redirect('/wasm_website/static/src/img/project_conference_ritz.jpg')
+        return self._wasm_stream(news, 'image',
+                                 fallback_url='/wasm_website/static/src/img/project_conference_ritz.jpg')
 
     @http.route('/wasm/gallery/<int:image_id>/image', type='http', auth='public')
     def wasm_gallery_image_stream(self, image_id, **kw):
         img = request.env['wasm.gallery.image'].sudo().browse(image_id)
-        if img.exists() and img.image:
-            data = base64.b64decode(img.image)
-            return request.make_response(
-                data,
-                headers=[
-                    ('Content-Type', 'image/jpeg'),
-                    ('Content-Length', str(len(data))),
-                    ('Cache-Control', 'public, max-age=86400'),
-                ]
-            )
-        return request.redirect('/wasm_website/static/src/img/official_live_projects/gallery_img_1.webp')
-
-
-
+        return self._wasm_stream(img, 'image',
+                                 fallback_url='/wasm_website/static/src/img/official_live_projects/gallery_img_1.webp')

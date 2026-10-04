@@ -8,6 +8,7 @@
         <xpath expr="//head" position="inside">
             <!-- SEO Best Practices & Search Engine Compatibility Meta Tags -->
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
             <meta name="author" content="ARFA SPECIALIZED SYSTEMS"/>
             <meta name="publisher" content="ARFA SPECIALIZED SYSTEMS"/>
@@ -156,9 +157,9 @@
                 #top_menu_collapse_mobile.show {
                     background: #ffffff !important;
                     background-color: #ffffff !important;
-                    color: #0f172a !important;
+                    color: #192754 !important;
                     opacity: 1 !important;
-                    box-shadow: -10px 0 40px rgba(15, 23, 42, 0.25) !important;
+                    box-shadow: -10px 0 40px rgba(25, 39, 84, 0.25) !important;
                     z-index: 10000000 !important;
                     width: 320px !important;
                     max-width: 88vw !important;
@@ -167,7 +168,7 @@
 
                 .offcanvas-backdrop,
                 .offcanvas-backdrop.show {
-                    background-color: rgba(15, 23, 42, 0.65) !important;
+                    background-color: rgba(25, 39, 84, 0.65) !important;
                     backdrop-filter: blur(6px) !important;
                     -webkit-backdrop-filter: blur(6px) !important;
                     z-index: 9999999 !important;
@@ -220,7 +221,7 @@
                     padding: 14px 18px !important;
                     font-size: 0.98rem !important;
                     font-weight: 700 !important;
-                    color: #1e293b !important;
+                    color: #22305E !important;
                     background: #f8fafc !important;
                     border: 1px solid #f1f5f9 !important;
                     border-radius: 12px !important;
@@ -231,32 +232,32 @@
 
                 #top_menu_collapse_mobile .top_menu > li > a.nav-link.active,
                 .offcanvas-body .top_menu > li > a.nav-link.active {
-                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-                    color: #ffffff !important;
+                    background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important;
+                    color: #192754 !important;
                     border: none !important;
-                    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.3) !important;
+                    box-shadow: 0 4px 14px rgba(232, 163, 23, 0.3) !important;
                 }
 
                 #top_menu_collapse_mobile .top_menu > li > a.nav-link:hover,
                 #top_menu_collapse_mobile .top_menu .accordion-button:hover,
                 .offcanvas-body .top_menu > li > a.nav-link:hover {
-                    background: #fff7ed !important;
-                    color: #d97706 !important;
-                    border-color: #fde68a !important;
+                    background: #FFF8E6 !important;
+                    color: #9A6A05 !important;
+                    border-color: #F7E2A6 !important;
                 }
 
                 #top_menu_collapse_mobile .btn_cta,
                 .offcanvas-body .btn_cta,
                 #top_menu_collapse_mobile .btn-primary,
                 .offcanvas-body .btn-primary {
-                    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-                    color: #ffffff !important;
+                    background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important;
+                    color: #192754 !important;
                     font-weight: 800 !important;
                     font-size: 1rem !important;
                     padding: 14px 20px !important;
                     border-radius: 50px !important;
                     border: none !important;
-                    box-shadow: 0 6px 20px rgba(217, 119, 6, 0.35) !important;
+                    box-shadow: 0 6px 20px rgba(232, 163, 23, 0.35) !important;
                     text-transform: uppercase !important;
                     width: 100% !important;
                     margin-top: 16px !important;
@@ -298,8 +299,8 @@
                         padding: 4px 12px !important;
                         margin-top: 4px !important;
                         display: inline-block !important;
-                        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-                        color: #ffffff !important;
+                        background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important;
+                        color: #192754 !important;
                         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
                     }
                     .wasm-hero-lead,
@@ -421,7 +422,7 @@
                     .wasm-hero-pillars-section .wasm-pillar-card {
                         height: 100% !important;
                         border-radius: 20px !important;
-                        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15) !important;
+                        box-shadow: 0 10px 30px rgba(25, 39, 84, 0.15) !important;
                         border: 1px solid #e2e8f0 !important;
                     }
                 }
@@ -437,13 +438,14 @@
               name="Wasm Footer Override" priority="99">
         <xpath expr="//div[@id='footer']" position="replace">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
-            <t t-set="site_cfg" t-value="request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_cfg" t-value="site_config"/>
             <div id="footer" class="oe_structure oe_structure_solo wasm-footer"
                  t-ignore="true" t-if="not no_footer">
                 <div class="container py-5">
                     <div class="row g-5">
                         <div class="col-lg-4">
-                            <h5 class="wasm-footer-title">ARFA SPECIALIZED SYSTEMS</h5>
+                            <img src="/wasm_website/static/src/img/arfa_logo_stacked.svg" alt="ARFA Construction &amp; Specialized Systems" class="wasm-footer-logo" loading="lazy" width="175" height="96"/>
                             <p class="wasm-footer-desc" t-if="is_en">
                                 Leading Saudi general contracting firm specializing in structural, civil, and MEP engineering works following the Saudi Building Code.
                             </p>
@@ -474,7 +476,7 @@
                         </div>
                         <div class="col-lg-3 col-md-4">
                             <h5 class="wasm-footer-title">Contact Us</h5>
-                            <p class="wasm-footer-contact"><i class="fa fa-map-marker wasm-footer-icon"></i><span t-out="site_cfg and site_cfg.contact_address_en or 'Riyadh - Al Sahafa'"/></p>
+                            <p class="wasm-footer-contact"><i class="fa fa-map-marker wasm-footer-icon"></i><span t-out="site_cfg and site_cfg.wasm_t('contact_address', is_en) or 'Riyadh - Al Sahafa'"/></p>
                             <p class="wasm-footer-contact"><i class="fa fa-phone wasm-footer-icon"></i><span class="dir-ltr" t-out="site_cfg and site_cfg.contact_phone or '+966 11 234 5678'"/></p>
                             <p class="wasm-footer-contact"><i class="fa fa-envelope wasm-footer-icon"></i><a t-att-href="'mailto:' + (site_cfg and site_cfg.contact_email or 'info@arfa-sa.com')" class="text-dark text-decoration-none fw-semibold" t-out="site_cfg and site_cfg.contact_email or 'info@arfa-sa.com'"/></p>
                             <a href="/quote" class="btn btn-warning rounded-pill fw-bold text-white mt-3 px-4 py-2">
@@ -499,7 +501,8 @@
     <template id="wasm_floating_btn" inherit_id="website.layout" name="Wasm Floating CTA">
         <xpath expr="//div[@id='wrapwrap']" position="inside">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
-            <t t-set="site_cfg" t-value="request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_cfg" t-value="site_config"/>
             
             <!-- Collapsible Speed-Dial Action Container -->
             <div id="wasmFloatingContainer" class="wasm-floating-speed-dial">
@@ -579,6 +582,7 @@
     <template id="wasm_homepage_override" inherit_id="website.homepage" name="Wasm Homepage Layout" priority="1">
         <xpath expr="//div[@id='wrap']" position="replace">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="'ARFA SPECIALIZED SYSTEMS - Official Website'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_home_top"/>
@@ -586,7 +590,7 @@
                 <!-- Hero Video Banner -->
                 <section class="wasm-hero-banner">
                     <div class="wasm-hero-video-wrapper">
-                        <video autoplay="autoplay" loop="loop" muted="muted" playsinline="playsinline" poster="/wasm_website/static/src/img/hero_bg.png" class="wasm-hero-bg-video">
+                        <video autoplay="autoplay" loop="loop" muted="muted" playsinline="playsinline" t-att-poster="site_config.wasm_img_url('hero_bg_image')" class="wasm-hero-bg-video">
                             <source src="/wasm_website/static/src/video/hero_construction.mp4" type="video/mp4"/>
                         </video>
                         <div class="wasm-hero-overlay"></div>
@@ -597,14 +601,14 @@
                             <div class="col-lg-8 text-center text-lg-start wasm-hero-text-block">
                                 <h1 class="display-4 fw-bold mb-3 wasm-hero-title wasm-anim-item wasm-anim-delay-2" t-if="is_en">
                                     <span class="wasm-hero-title-main">ARFA SPECIALIZED SYSTEMS</span>
-                                    <span class="wasm-hero-subtitle">Pioneering Engineering &amp; Construction Excellence</span>
+                                    <span class="wasm-hero-subtitle" t-out="site_config.wasm_t('hero_title', True) or 'Pioneering Engineering &amp; Construction Excellence'"/>
                                 </h1>
                                 <h1 class="display-4 fw-bold mb-3 wasm-hero-title wasm-anim-item wasm-anim-delay-2" t-else="">
                                     <span class="wasm-hero-title-main">ARFA SPECIALIZED SYSTEMS</span>
-                                    <span class="wasm-hero-subtitle">Engineering Excellence &amp; Integrated Construction Solutions</span>
+                                    <span class="wasm-hero-subtitle" t-out="site_config.wasm_t('hero_title', False) or 'Engineering Excellence &amp; Integrated Construction Solutions'"/>
                                 </h1>
-                                <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-if="is_en" data-typewriter-text="ARAFA SPECIALIZED SYSTEMS IS YOUR PREMIER PARTNER IN ENGINEERING AND CONSTRUCTION, DELIVERING ADVANCED BUILDING TECHNOLOGIES AND LEADING-EDGE ENERGY SOLUTIONS.">
-                                    <span class="wasm-typewriter-content">ARAFA SPECIALIZED SYSTEMS IS YOUR PREMIER PARTNER IN ENGINEERING AND CONSTRUCTION, DELIVERING ADVANCED BUILDING TECHNOLOGIES AND LEADING-EDGE ENERGY SOLUTIONS.</span><span class="wasm-typewriter-cursor">|</span>
+                                <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-if="is_en" data-typewriter-text="ARFA Specialized Systems is your premier partner in engineering and construction, delivering advanced building technologies and leading-edge energy solutions.">
+                                    <span class="wasm-typewriter-content">ARFA Specialized Systems is your premier partner in engineering and construction, delivering advanced building technologies and leading-edge energy solutions.</span><span class="wasm-typewriter-cursor">|</span>
                                 </p>
                                 <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-else="" data-typewriter-text="شركة عرفة للأنظمة المتخصصة هي شريكك الهندسي والإنشائي الأول، حيث تقدم أحدث تقنيات البناء وحلول الكهروميكانيك والمباني الذكية.">
                                     <span class="wasm-typewriter-content">شركة عرفة للأنظمة المتخصصة هي شريكك الهندسي والإنشائي الأول، حيث تقدم أحدث تقنيات البناء وحلول الكهروميكانيك والمباني الذكية.</span><span class="wasm-typewriter-cursor">|</span>
@@ -629,7 +633,7 @@
                                         </svg>
                                         <span>Request a Quote</span>
                                     </a>
-                                    <a href="https://arfa-sa.com/web/content/1748?unique=e8d3d380c174815dee067abcd752aa2cca9450cf" target="_blank" rel="noopener" class="btn wasm-hero-btn wasm-hero-btn-2 wasm-anim-item wasm-anim-delay-5">
+                                    <a href="/company-profile" target="_blank" rel="noopener" class="btn wasm-hero-btn wasm-hero-btn-2 wasm-anim-item wasm-anim-delay-5">
                                         <svg class="wasm-btn-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                             <polyline points="14 2 14 8 20 8"></polyline>
@@ -656,12 +660,12 @@
                             <div class="col-md-4">
                                 <div class="wasm-pillar-card h-100 shadow-sm border-0 rounded-4 overflow-hidden bg-white">
                                     <div class="wasm-pillar-img-wrapper overflow-hidden" style="height: 200px; position: relative;">
-                                        <img src="/wasm/pillar/1/image" alt="Pillar 1" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                        <img t-att-src="site_config.wasm_img_url('pillar1_img')" loading="lazy" alt="Pillar 1" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                     </div>
                                     <div class="p-4">
-                                        <h4 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.pillar1_title_en or 'Structural &amp; Civil Contracting'">
+                                        <h4 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('pillar1_title', is_en) or 'Structural &amp; Civil Contracting'">
 </h4>
-                                        <p class="text-muted small mb-3" t-out="site_config and site_config.pillar1_desc_en or 'Concrete framing, foundations, and heavy structural developments executed strictly to SBC codes.'">
+                                        <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('pillar1_desc', is_en) or 'Concrete framing, foundations, and heavy structural developments executed strictly to SBC codes.'">
 </p>
                                         <a t-att-href="site_config and site_config.pillar1_link or '/services'" class="wasm-pillar-link fw-bold text-warning text-decoration-none"><span>Explore Services</span> <i class="fa fa-arrow-left ms-1"></i></a>
                                     </div>
@@ -670,12 +674,12 @@
                             <div class="col-md-4">
                                 <div class="wasm-pillar-card h-100 shadow-sm border-0 rounded-4 overflow-hidden bg-white">
                                     <div class="wasm-pillar-img-wrapper overflow-hidden" style="height: 200px; position: relative;">
-                                        <img src="/wasm/pillar/2/image" alt="Pillar 2" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                        <img t-att-src="site_config.wasm_img_url('pillar2_img')" loading="lazy" alt="Pillar 2" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                     </div>
                                     <div class="p-4">
-                                        <h4 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.pillar2_title_en or 'MEP &amp; Mechanical Systems'">
+                                        <h4 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('pillar2_title', is_en) or 'MEP &amp; Mechanical Systems'">
 </h4>
-                                        <p class="text-muted small mb-3" t-out="site_config and site_config.pillar2_desc_en or 'Advanced HVAC ducting, plumbing, electrical grid infrastructure, and smart automation.'">
+                                        <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('pillar2_desc', is_en) or 'Advanced HVAC ducting, plumbing, electrical grid infrastructure, and smart automation.'">
 </p>
                                         <a t-att-href="site_config and site_config.pillar2_link or '/services'" class="wasm-pillar-link fw-bold text-warning text-decoration-none"><span>Explore Services</span> <i class="fa fa-arrow-left ms-1"></i></a>
                                     </div>
@@ -684,12 +688,12 @@
                             <div class="col-md-4">
                                 <div class="wasm-pillar-card h-100 shadow-sm border-0 rounded-4 overflow-hidden bg-white">
                                     <div class="wasm-pillar-img-wrapper overflow-hidden" style="height: 200px; position: relative;">
-                                        <img src="/wasm/pillar/3/image" alt="Pillar 3" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                        <img t-att-src="site_config.wasm_img_url('pillar3_img')" loading="lazy" alt="Pillar 3" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                     </div>
                                     <div class="p-4">
-                                        <h4 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.pillar3_title_en or 'Turnkey Project Delivery'">
+                                        <h4 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('pillar3_title', is_en) or 'Turnkey Project Delivery'">
 </h4>
-                                        <p class="text-muted small mb-3" t-out="site_config and site_config.pillar3_desc_en or 'Comprehensive engineering management, interior fitouts, and end-to-end turnkey delivery.'">
+                                        <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('pillar3_desc', is_en) or 'Comprehensive engineering management, interior fitouts, and end-to-end turnkey delivery.'">
 </p>
                                         <a t-att-href="site_config and site_config.pillar3_link or '/services'" class="wasm-pillar-link fw-bold text-warning text-decoration-none"><span>Explore Services</span> <i class="fa fa-arrow-left ms-1"></i></a>
                                     </div>
@@ -705,13 +709,13 @@
                 <section class="wasm-home-stats-section bg-white">
                     <div class="container">
                         <div class="row g-4">
-                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number">150+</div><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat1_label_en') or 'Completed Projects'">
+                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number" t-out="(stats and stats.get('stat1_val')) or site_config.stat1_val or '150+'"/><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat1_label_en' if is_en else 'stat1_label_ar') or site_config.wasm_t('stat1_label', is_en) or 'Completed Projects'">
 </div></div></div>
-                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number">18+</div><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat2_label_en') or 'Years Experience'">
+                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number" t-out="(stats and stats.get('stat2_val')) or site_config.stat2_val or '18+'"/><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat2_label_en' if is_en else 'stat2_label_ar') or site_config.wasm_t('stat2_label', is_en) or 'Years Experience'">
 </div></div></div>
-                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number">1,200,000+</div><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat3_label_en') or 'm² Executed Area'">
+                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number" t-out="(stats and stats.get('stat3_val')) or site_config.stat3_val or '1,200,000+'"/><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat3_label_en' if is_en else 'stat3_label_ar') or site_config.wasm_t('stat3_label', is_en) or 'm² Executed Area'">
 </div></div></div>
-                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number">85+</div><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat4_label_en') or 'Engineers &amp; Specialists'">
+                            <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number" t-out="(stats and stats.get('stat4_val')) or site_config.stat4_val or '85+'"/><div class="text-muted fw-bold mt-1" t-out="stats and stats.get('stat4_label_en' if is_en else 'stat4_label_ar') or site_config.wasm_t('stat4_label', is_en) or 'Engineers &amp; Specialists'">
 </div></div></div>
                         </div>
                     </div>
@@ -720,21 +724,21 @@
                 <div class="oe_structure" id="oe_structure_home_middle_2"/>
 
                 <!-- Corporate Video Showcase -->
-                <section class="py-5 bg-white position-relative" t-attf-style="#{site_config and site_config.showcase_bg_image and 'background: url(\'/wasm/video/bg\') center/cover no-repeat !important;' or ''}">
+                <section class="py-5 bg-white position-relative" t-att-style="site_config.showcase_bg_image and ('background: url(%s) center/cover no-repeat !important;' % site_config.wasm_img_url('showcase_bg_image')) or None">
                     <div class="container">
                         <div class="row align-items-center g-5">
                             <div class="col-lg-6">
-                                <h2 class="wasm-section-title text-start mb-4" t-out="site_config and site_config.showcase_title_en or 'Building Saudi Arabia\'s Infrastructure Vision'">
+                                <h2 class="wasm-section-title text-start mb-4" t-out="site_config and site_config.wasm_t('showcase_title', is_en) or 'Building Saudi Arabia\'s Infrastructure Vision'">
 </h2>
-                                <p class="fs-5 text-muted lh-lg mb-3" t-out="site_config and site_config.showcase_desc_en or 'Watch how ARFA SPECIALIZED SYSTEMS executes major structural and commercial development projects adhering to Saudi Building Code and strict quality metrics.'">
+                                <p class="fs-5 text-muted lh-lg mb-3" t-out="site_config and site_config.wasm_t('showcase_desc', is_en) or 'Watch how ARFA SPECIALIZED SYSTEMS executes major structural and commercial development projects adhering to Saudi Building Code and strict quality metrics.'">
 </p>
 
                                 <ul class="list-unstyled mb-4 text-dark fs-6 fw-bold">
-                                    <li class="mb-2"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config and site_config.showcase_bullet1_en or 'Execution strictly adhering to Saudi Building Code (SBC 301-306).'">
+                                    <li class="mb-2"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config and site_config.wasm_t('showcase_bullet1', is_en) or 'Execution strictly adhering to Saudi Building Code (SBC 301-306).'">
 </span></li>
-                                    <li class="mb-2"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config and site_config.showcase_bullet2_en or 'Complete MEP engineering: HVAC, fire fighting, and electrical networks.'">
+                                    <li class="mb-2"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config and site_config.wasm_t('showcase_bullet2', is_en) or 'Complete MEP engineering: HVAC, fire fighting, and electrical networks.'">
 </span></li>
-                                    <li class="mb-2"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config and site_config.showcase_bullet3_en or 'Certified team of engineers accredited by the Saudi Council of Engineers.'">
+                                    <li class="mb-2"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config and site_config.wasm_t('showcase_bullet3', is_en) or 'Certified team of engineers accredited by the Saudi Council of Engineers.'">
 </span></li>
                                 </ul>
 
@@ -746,8 +750,8 @@
                             <div class="col-lg-6">
                                 <div class="wasm-video-card">
                                     <div class="wasm-video-wrapper position-relative overflow-hidden rounded-4 shadow-lg">
-                                        <video id="wasm_showcase_video" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" poster="/wasm/video/poster" style="width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;">
-                                            <source t-att-src="'/wasm/video/showcase?v=' + str(site_config and site_config.write_date or '')" type="video/mp4"/>
+                                        <video id="wasm_showcase_video" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" t-att-poster="site_config.wasm_img_url('showcase_poster') or None" preload="metadata" style="width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;">
+                                            <source t-att-src="site_config.wasm_video_url()" type="video/mp4"/>
                                             <t>Your browser does not support the video tag.</t>
                                         </video>
                                         <!-- Floating Gold Glassmorphic Play Button -->
@@ -778,12 +782,12 @@
                                 <div class="wasm-slider-item">
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <div class="overflow-hidden" style="height: 160px;">
-                                            <img src="/wasm/why/1/image" alt="SBC Compliance" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <img t-att-src="site_config.wasm_img_url('why1_img')" loading="lazy" alt="SBC Compliance" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                         </div>
                                         <div class="p-4 text-center">
-                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.why1_title_en or 'SBC Code Compliance'">
+                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('why1_title', is_en) or 'SBC Code Compliance'">
 </h5>
-                                            <p class="text-muted small mb-0" t-out="site_config and site_config.why1_desc_en or 'Strict adherence to Saudi Building Code specifications across all concrete structural works.'">
+                                            <p class="text-muted small mb-0" t-out="site_config and site_config.wasm_t('why1_desc', is_en) or 'Strict adherence to Saudi Building Code specifications across all concrete structural works.'">
 </p>
                                         </div>
                                     </div>
@@ -791,12 +795,12 @@
                                 <div class="wasm-slider-item">
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <div class="overflow-hidden" style="height: 160px;">
-                                            <img src="/wasm/why/2/image" alt="BIM 3D Tech" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <img t-att-src="site_config.wasm_img_url('why2_img')" loading="lazy" alt="BIM 3D Tech" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                         </div>
                                         <div class="p-4 text-center">
-                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.why2_title_en or 'BIM 3D Project Tech'">
+                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('why2_title', is_en) or 'BIM 3D Project Tech'">
 </h5>
-                                            <p class="text-muted small mb-0" t-out="site_config and site_config.why2_desc_en or 'Advanced 3D modeling and clash detection prior to site execution ensuring zero errors.'">
+                                            <p class="text-muted small mb-0" t-out="site_config and site_config.wasm_t('why2_desc', is_en) or 'Advanced 3D modeling and clash detection prior to site execution ensuring zero errors.'">
 </p>
                                         </div>
                                     </div>
@@ -804,12 +808,12 @@
                                 <div class="wasm-slider-item">
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <div class="overflow-hidden" style="height: 160px;">
-                                            <img src="/wasm/why/3/image" alt="Heavy Machinery" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <img t-att-src="site_config.wasm_img_url('why3_img')" loading="lazy" alt="Heavy Machinery" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                         </div>
                                         <div class="p-4 text-center">
-                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.why3_title_en or 'Owned Heavy Machinery'">
+                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('why3_title', is_en) or 'Owned Heavy Machinery'">
 </h5>
-                                            <p class="text-muted small mb-0" t-out="site_config and site_config.why3_desc_en or 'Complete fleet of excavators, cranes, and concrete pumps to accelerate timelines.'">
+                                            <p class="text-muted small mb-0" t-out="site_config and site_config.wasm_t('why3_desc', is_en) or 'Complete fleet of excavators, cranes, and concrete pumps to accelerate timelines.'">
 </p>
                                         </div>
                                     </div>
@@ -817,12 +821,12 @@
                                 <div class="wasm-slider-item">
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <div class="overflow-hidden" style="height: 160px;">
-                                            <img src="/wasm/why/4/image" alt="Strict Timelines" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <img t-att-src="site_config.wasm_img_url('why4_img')" loading="lazy" alt="Strict Timelines" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                         </div>
                                         <div class="p-4 text-center">
-                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.why4_title_en or 'Strict Timelines'">
+                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('why4_title', is_en) or 'Strict Timelines'">
 </h5>
-                                            <p class="text-muted small mb-0" t-out="site_config and site_config.why4_desc_en or 'Guaranteed project completion within agreed schedule and transparent budget.'">
+                                            <p class="text-muted small mb-0" t-out="site_config and site_config.wasm_t('why4_desc', is_en) or 'Guaranteed project completion within agreed schedule and transparent budget.'">
 </p>
                                         </div>
                                     </div>
@@ -830,12 +834,12 @@
                                 <div class="wasm-slider-item">
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <div class="overflow-hidden" style="height: 160px;">
-                                            <img src="/wasm/why/5/image" alt="Quality Control" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <img t-att-src="site_config.wasm_img_url('why5_img')" loading="lazy" alt="Quality Control" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                         </div>
                                         <div class="p-4 text-center">
-                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.why5_title_en or 'Certified Quality Lab'">
+                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('why5_title', is_en) or 'Certified Quality Lab'">
 </h5>
-                                            <p class="text-muted small mb-0" t-out="site_config and site_config.why5_desc_en or 'Rigorous core testing and ultrasound concrete strength inspection on site.'">
+                                            <p class="text-muted small mb-0" t-out="site_config and site_config.wasm_t('why5_desc', is_en) or 'Rigorous core testing and ultrasound concrete strength inspection on site.'">
 </p>
                                         </div>
                                     </div>
@@ -843,12 +847,12 @@
                                 <div class="wasm-slider-item">
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <div class="overflow-hidden" style="height: 160px;">
-                                            <img src="/wasm/why/6/image" alt="ISO Safety Standards" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <img t-att-src="site_config.wasm_img_url('why6_img')" loading="lazy" alt="ISO Safety Standards" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                         </div>
                                         <div class="p-4 text-center">
-                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.why6_title_en or 'ISO &amp; Site Safety Compliance'">
+                                            <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('why6_title', is_en) or 'ISO &amp; Site Safety Compliance'">
 </h5>
-                                            <p class="text-muted small mb-0" t-out="site_config and site_config.why6_desc_en or 'Zero-hazard workplace policies adhering to international safety frameworks.'">
+                                            <p class="text-muted small mb-0" t-out="site_config and site_config.wasm_t('why6_desc', is_en) or 'Zero-hazard workplace policies adhering to international safety frameworks.'">
 </p>
                                         </div>
                                     </div>
@@ -872,15 +876,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv1_url or '/modern-building-systems'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/1/image" alt="Modern Building Systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv1_img')" loading="lazy" alt="Modern Building Systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv1_url or '/modern-building-systems'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv1_title_en or 'Modern building systems'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv1_title', is_en) or 'Modern building systems'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv1_desc_en or 'Advanced modern construction tech, glass facades, prefab steel framing, and turnkey fitouts.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv1_desc', is_en) or 'Advanced modern construction tech, glass facades, prefab steel framing, and turnkey fitouts.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv1_url or '/modern-building-systems'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -895,15 +899,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv2_url or '/electromechanical-systems'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/2/image" alt="Electromechanical systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv2_img')" loading="lazy" alt="Electromechanical systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv2_url or '/electromechanical-systems'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv2_title_en or 'Electromechanical systems'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv2_title', is_en) or 'Electromechanical systems'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv2_desc_en or 'Design, supply, and installation of power grids, mechanical infrastructure, and sanitary networks.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv2_desc', is_en) or 'Design, supply, and installation of power grids, mechanical infrastructure, and sanitary networks.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv2_url or '/electromechanical-systems'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -918,15 +922,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv3_url or '/smart-building-systems'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/3/image" alt="Smart building systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv3_img')" loading="lazy" alt="Smart building systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv3_url or '/smart-building-systems'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv3_title_en or 'Smart building systems'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv3_title', is_en) or 'Smart building systems'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv3_desc_en or 'Building automation, smart control panels, security systems, and early warning technology.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv3_desc', is_en) or 'Building automation, smart control panels, security systems, and early warning technology.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv3_url or '/smart-building-systems'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -941,15 +945,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv4_url or '/alternative-energy-solutions'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/4/image" alt="Alternative energy solutions" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv4_img')" loading="lazy" alt="Alternative energy solutions" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv4_url or '/alternative-energy-solutions'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv4_title_en or 'Alternative energy solutions'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv4_title', is_en) or 'Alternative energy solutions'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv4_desc_en or 'Photovoltaic solar energy systems and energy optimization solutions for commercial sectors.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv4_desc', is_en) or 'Photovoltaic solar energy systems and energy optimization solutions for commercial sectors.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv4_url or '/alternative-energy-solutions'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -964,15 +968,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv5_url or '/fire-protection-prevention-systems'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/5/image" alt="Fire protection &amp; prevention systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv5_img')" loading="lazy" alt="Fire protection &amp; prevention systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv5_url or '/fire-protection-prevention-systems'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv5_title_en or 'Fire protection &amp; prevention systems'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv5_title', is_en) or 'Fire protection &amp; prevention systems'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv5_desc_en or 'Automatic fire suppression, alarm networks, and civil defense certified pump installations.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv5_desc', is_en) or 'Automatic fire suppression, alarm networks, and civil defense certified pump installations.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv5_url or '/fire-protection-prevention-systems'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -987,15 +991,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv6_url or '/medical-gas-systems'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/6/image" alt="Medical Gas Systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv6_img')" loading="lazy" alt="Medical Gas Systems" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv6_url or '/medical-gas-systems'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv6_title_en or 'Medical Gas Systems'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv6_title', is_en) or 'Medical Gas Systems'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv6_desc_en or 'Design and installation of central medical gas pipelines and operating theatre infrastructure.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv6_desc', is_en) or 'Design and installation of central medical gas pipelines and operating theatre infrastructure.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv6_url or '/medical-gas-systems'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -1010,15 +1014,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv7_url or '/infrastructure-development'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/7/image" alt="Infrastructure Development" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv7_img')" loading="lazy" alt="Infrastructure Development" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv7_url or '/infrastructure-development'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv7_title_en or 'Infrastructure Development'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv7_title', is_en) or 'Infrastructure Development'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv7_desc_en or 'Underground piping, drainage networks, site excavation, and public infrastructure works.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv7_desc', is_en) or 'Underground piping, drainage networks, site excavation, and public infrastructure works.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv7_url or '/infrastructure-development'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -1033,15 +1037,15 @@
                                     <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
                                         <a t-att-href="site_config and site_config.srv8_url or '/planning-construction'" class="text-decoration-none">
                                             <div class="overflow-hidden" style="height: 170px;">
-                                                <img src="/wasm/service_card/8/image" alt="Planning &amp; Construction" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                <img t-att-src="site_config.wasm_img_url('srv8_img')" loading="lazy" alt="Planning &amp; Construction" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
                                             </div>
                                         </a>
                                         <div class="p-4 text-center d-flex flex-column h-100">
                                             <a t-att-href="site_config and site_config.srv8_url or '/planning-construction'" class="text-decoration-none">
-                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.srv8_title_en or 'Planning &amp; Construction'">
+                                                <h5 class="fw-bold mb-2 text-dark" t-out="site_config and site_config.wasm_t('srv8_title', is_en) or 'Planning &amp; Construction'">
 </h5>
                                             </a>
-                                            <p class="text-muted small mb-3" t-out="site_config and site_config.srv8_desc_en or 'Concrete framing, foundations, and heavy structural developments executed strictly to SBC code.'">
+                                            <p class="text-muted small mb-3" t-out="site_config and site_config.wasm_t('srv8_desc', is_en) or 'Concrete framing, foundations, and heavy structural developments executed strictly to SBC code.'">
 </p>
                                             <div class="mt-auto d-flex justify-content-center gap-2">
                                                 <a t-att-href="site_config and site_config.srv8_url or '/planning-construction'" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3">Details</a>
@@ -1119,7 +1123,7 @@
                 
 
                 <!-- Client Testimonials Section -->
-                <t t-set="site_cfg" t-value="site_config or (website and website.env['wasm.site.config'].sudo().get_config())"/>
+                <t t-set="site_cfg" t-value="site_config"/>
                 <t t-set="testimonials_list" t-value="testimonials or (website and website.env['wasm.testimonial'].sudo().search([('active', '=', True)], order='sequence, id'))"/>
                 <t t-if="site_cfg and site_cfg.show_testimonials and testimonials_list">
                     <section class="py-5 bg-white position-relative" id="testimonials">
@@ -1395,8 +1399,8 @@
             }
             .wasm-fluid-hero-section {
                 position: relative;
-                background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 40%, #fde68a 80%, #fef3c7 100%) !important;
-                padding: 135px 0 210px 0 !important;
+                background: radial-gradient(1200px 420px at 85% 0%, rgba(242, 185, 30, 0.16) 0%, rgba(242, 185, 30, 0) 60%), linear-gradient(135deg, #192754 0%, #22305E 60%, #2A3B73 100%) !important;
+                padding: 115px 0 175px 0 !important;
                 overflow: hidden;
                 border: none !important;
             }
@@ -1431,7 +1435,7 @@
         <section class="wasm-fluid-hero-section text-center">
             <!-- Layer 1: Ultra-Smooth Gold Liquid Wave Accent (Harmonious Organic S-Curve) -->
             <svg class="wasm-liquid-wave-1" viewBox="0 0 1440 300" preserveAspectRatio="none">
-                <path fill="rgba(245, 158, 11, 0.45)" d="M0,155 C360,230 720,165 1080,80 C1260,35 1380,15 1440,10 L1440,500 L0,500 Z"></path>
+                <path fill="rgba(232, 163, 23, 0.45)" d="M0,155 C360,230 720,165 1080,80 C1260,35 1380,15 1440,10 L1440,500 L0,500 Z"></path>
             </svg>
 
             <!-- Layer 2: Seamless Ultra-Smooth White Cut-Out Wave (Right Side Height > 90%) -->
@@ -1442,16 +1446,16 @@
             <div class="container position-relative" style="z-index: 5;">
                 <div class="wasm-fluid-hero-content">
                     <t t-if="badge_text">
-                        <span class="badge px-4 py-2 rounded-pill fw-bold text-uppercase mb-3 shadow-sm" style="font-size: 0.9rem; letter-spacing: 1.2px; background-color: #d87706 !important; color: #ffffff !important;">
+                        <span class="badge px-4 py-2 rounded-pill fw-bold text-uppercase mb-3 shadow-sm" style="font-size: 0.9rem; letter-spacing: 1.2px; background-color: #F2B91E !important; color: #192754 !important;">
                             <t t-out="badge_text"/>
                         </span>
                     </t>
-                    <h1 class="display-3 fw-bold mb-2" style="color: #0f172a !important; letter-spacing: 0.5px; font-weight: 900;">
+                    <h1 class="display-3 fw-bold mb-2" style="color: #ffffff !important; letter-spacing: 0.5px; font-weight: 900;">
                         <t t-out="title_text"/>
                     </h1>
-                    <div class="mx-auto my-3" style="width: 90px; height: 4px; background: #d87706; border-radius: 2px;"/>
+                    <div class="mx-auto my-3" style="width: 90px; height: 4px; background: linear-gradient(90deg, #F6D365, #E8A317); border-radius: 2px;"/>
                     <t t-if="subtitle_text">
-                        <p class="fs-4 mx-auto fw-bold mb-0" style="color: #334155 !important; max-width: 780px; line-height: 1.6;">
+                        <p class="fs-4 mx-auto fw-bold mb-0" style="color: rgba(255, 255, 255, 0.85) !important; max-width: 780px; line-height: 1.6;">
                             <t t-out="subtitle_text"/>
                         </p>
                     </t>
@@ -1466,6 +1470,7 @@
     <template id="about_page_template" name="About Us - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="aboutus">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'About Us | ARFA SPECIALIZED SYSTEMS' or 'عن الشركة | شركة عرفة للأنظمة المتخصصة'"/>
             <div id="wrap" class="oe_structure oe_empty bg-white">
                 <div class="oe_structure" id="oe_structure_about_top"/>
@@ -1508,7 +1513,7 @@
                                         عبر العقود الماضية، تطورت شركة عرفة للأنظمة المتخصصة لتصبح منظومة متكاملة متعددة التخصصات تشمل:
                                     </p>
 
-                                    <div class="p-3 rounded-3 mb-4 shadow-sm bg-light" style="border-left: 4px solid #d87706 !important;">
+                                    <div class="p-3 rounded-3 mb-4 shadow-sm bg-light" style="border-left: 4px solid #E8A317 !important;">
                                         <div class="d-flex align-items-center gap-3">
                                             <i class="fa fa-check-circle fs-4 text-warning"/>
                                             <span class="fw-bold fs-5 text-dark">
@@ -1533,7 +1538,7 @@
                                     <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-lg bg-white p-2 wasm-hover-card">
                                         <img src="/wasm_website/static/src/img/about_teamwork.jpg" alt="ARFA Teamwork &amp; Excellence" class="img-fluid rounded-4 w-100" style="object-fit: cover; max-height: 480px; transition: transform 0.4s ease;"/>
                                     </div>
-                                    <div class="position-absolute bottom-0 start-0 m-4 p-3 text-white rounded-3 shadow-lg" style="background-color: rgba(15, 23, 42, 0.92) !important; backdrop-filter: blur(8px); max-width: 280px; border: 1px solid rgba(216, 119, 6, 0.3);">
+                                    <div class="position-absolute bottom-0 start-0 m-4 p-3 text-white rounded-3 shadow-lg" style="background-color: rgba(25, 39, 84, 0.92) !important; backdrop-filter: blur(8px); max-width: 280px; border: 1px solid rgba(232, 163, 23, 0.3);">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0 bg-warning text-dark" style="width: 45px; height: 45px;">
                                                 <i class="fa fa-handshake-o fs-5"/>
@@ -1608,7 +1613,7 @@
                         </div>
 
                         <!-- Closing Statement Banner (Harmonized with Corporate Theme) -->
-                        <div class="mt-5 p-4 p-md-5 rounded-4 text-white shadow-lg" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; border: 1px solid rgba(216, 119, 6, 0.3);">
+                        <div class="mt-5 p-4 p-md-5 rounded-4 text-white shadow-lg" style="background: linear-gradient(135deg, #192754 0%, #22305E 100%) !important; border: 1px solid rgba(232, 163, 23, 0.3);">
                             <div class="row align-items-center">
                                 <div class="col-lg-9 mb-3 mb-lg-0">
                                     <p class="fs-5 mb-0 lh-lg text-white" t-if="is_en">
@@ -1642,6 +1647,7 @@
     <template id="services_page_template" name="Services - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="services">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Our Services | ARFA SPECIALIZED SYSTEMS' or 'خدماتنا المتخصصة | شركة عرفة للأنظمة المتخصصة'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_services_top"/>
@@ -1689,6 +1695,7 @@
     <template id="projects_page_template" name="Projects - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="projects">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Our Projects | ARFA SPECIALIZED SYSTEMS' or 'مشاريعنا | شركة عرفة للأنظمة المتخصصة'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_projects_top"/>
@@ -1714,7 +1721,7 @@
                                 </a>
                             </div>
                             <div class="ms-auto">
-                                <a href="/company-profile" target="_blank" class="btn text-white rounded-pill px-4 py-2-5 fw-bold shadow d-inline-flex align-items-center gap-2 wasm-hover-card" style="background: linear-gradient(135deg, #d87706 0%, #b45309 100%) !important; border: none !important; font-size: 0.92rem;">
+                                <a href="/company-profile" target="_blank" class="btn rounded-pill px-4 py-2-5 fw-bold shadow d-inline-flex align-items-center gap-2 wasm-hover-card" style="color: #192754 !important; background: linear-gradient(135deg, #E8A317 0%, #C98A0C 100%) !important; border: none !important; font-size: 0.92rem;">
                                     <i class="fa fa-file-pdf-o fs-5 text-warning"/>
                                     <span t-if="is_en">Company Profile (PDF)</span>
                                     <span t-else="">بروفايل الشركة (PDF)</span>
@@ -1810,6 +1817,7 @@
     <template id="contact_team_page_template" name="Contact Team - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="contact_team">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Contact Team | ARFA SPECIALIZED SYSTEMS' or 'التواصل مع الأقسام | شركة عرفة للأنظمة المتخصصة'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_contact_team_top"/>
@@ -1860,6 +1868,7 @@
     <template id="quote_page_template" name="Request a Quote - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="quote">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Request a Quote | ARFA SPECIALIZED SYSTEMS' or 'طلب عرض سعر | شركة عرفة للأنظمة المتخصصة'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_quote_top"/>
@@ -1966,7 +1975,7 @@
                                         <div class="mb-4">
                                             <div class="border border-2 rounded-4 p-4 text-center bg-light" style="border-style:dashed!important;">
                                                 <i class="fa fa-file-text-o fs-1 text-warning mb-2 d-block"></i>
-                                                <label class="btn wasm-btn-choose-file fw-bold rounded-pill px-4 py-2 mb-2" style="cursor:pointer; background: linear-gradient(135deg, #d97706, #f59e0b) !important; color: #ffffff !important; border: 1px solid #fef3c7 !important; box-shadow: 0 4px 15px rgba(217,119,6,0.3) !important;">
+                                                <label class="btn wasm-btn-choose-file fw-bold rounded-pill px-4 py-2 mb-2" style="cursor:pointer; background: linear-gradient(135deg, #E8A317, #F2B91E) !important; color: #192754 !important; border: 1px solid #FFF8E6 !important; box-shadow: 0 4px 15px rgba(232, 163, 23,0.3) !important;">
                                                     <span>Choose Files</span>
                                                     <input type="file" name="attachments" multiple="multiple" class="d-none"/>
                                                 </label>
@@ -1975,7 +1984,7 @@
                                             <div class="wasm-file-list-info"></div>
                                         </div>
                                         <div class="text-center mt-5">
-                                            <button type="submit" class="btn wasm-btn-submit-gold shadow-lg" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; color: #ffffff !important; font-size: 1.2rem !important; font-weight: 900 !important; padding: 16px 54px !important; border-radius: 50px !important; border: 2px solid #fef3c7 !important; box-shadow: 0 10px 30px rgba(217, 119, 6, 0.45) !important;">
+                                            <button type="submit" class="btn wasm-btn-submit-gold shadow-lg" style="background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important; color: #192754 !important; font-size: 1.2rem !important; font-weight: 900 !important; padding: 16px 54px !important; border-radius: 50px !important; border: 2px solid #FFF8E6 !important; box-shadow: 0 10px 30px rgba(232, 163, 23, 0.45) !important;">
                                                 <i class="fa fa-paper-plane me-2"></i>
                                                 <span>Submit RFQ</span>
                                             </button>
@@ -1997,6 +2006,7 @@
     <template id="quote_thanks_template" name="Order Confirmation - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="quote_thanks">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="'Request Submitted | ARFA SPECIALIZED SYSTEMS'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_quote_thanks_top"/>
@@ -2025,8 +2035,9 @@
     <template id="wasm_contactus_override" inherit_id="website.contactus" name="Wasm Contact Us Layout" priority="1">
         <xpath expr="//div[@id='wrap']" position="replace">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Contact Us | ARFA SPECIALIZED SYSTEMS' or 'اتصل بنا | شركة عرفة للأنظمة المتخصصة'"/>
-            <t t-set="site_cfg" t-value="request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_cfg" t-value="site_config"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_contact_top"/>
                 <t t-call="wasm_website.wasm_fluid_hero_header">
@@ -2058,7 +2069,7 @@
                                 <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 wasm-hover-card">
                                     <div class="fs-1 text-warning mb-2"><i class="fa fa-clock-o"></i></div>
                                     <h5 class="fw-bold">Working Hours</h5>
-                                    <p class="text-muted mb-0" t-out="site_cfg and site_cfg.contact_working_hours_en or 'Sunday - Thursday: 8 AM - 5 PM'"/>
+                                    <p class="text-muted mb-0" t-out="site_cfg and site_cfg.wasm_t('contact_working_hours', is_en) or 'Sunday - Thursday: 8 AM - 5 PM'"/>
                                     <p class="small text-secondary mt-1">Friday &amp; Saturday: Off</p>
                                 </div>
                             </div>
@@ -2176,14 +2187,15 @@
     <template id="location_page_template" name="Location - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="location">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Location | ARFA SPECIALIZED SYSTEMS' or 'موقعنا الجغرافي | شركة عرفة للأنظمة المتخصصة'"/>
-            <t t-set="site_cfg" t-value="request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_cfg" t-value="site_config"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <div class="oe_structure" id="oe_structure_location_top"/>
                 <t t-call="wasm_website.wasm_fluid_hero_header">
                     <t t-set="badge_text" t-value="is_en and 'OUR HEADQUARTERS' or 'المقر الرئيسي'"/>
                     <t t-set="title_text" t-value="is_en and 'LOCATION' or 'موقعنا الجغرافي'"/>
-                    <t t-set="subtitle_text" t-value="site_cfg and (is_en and site_cfg.contact_address_en or site_cfg.contact_address_ar) or (is_en and 'Riyadh - Al Sahafa District - King Fahd Road' or 'الرياض - حي الصحافة - طريق الملك فهد')"/>
+                    <t t-set="subtitle_text" t-value="site_cfg and site_cfg.wasm_t('contact_address', is_en) or (is_en and 'Riyadh - Al Sahafa District - King Fahd Road' or 'الرياض - حي الصحافة - طريق الملك فهد')"/>
                 </t>
                 <div class="oe_structure" id="oe_structure_location_middle"/>
                 <section class="py-5">
@@ -2212,8 +2224,9 @@
     <template id="our_company_page_template" name="Our Company - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="our_company">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'Our Company | ARFA SPECIALIZED SYSTEMS' or 'شركتنا | شركة عرفة للأنظمة المتخصصة'"/>
-            <t t-set="site_cfg" t-value="request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="site_cfg" t-value="site_config"/>
             <div id="wrap" class="oe_structure oe_empty bg-light">
                 <div class="oe_structure" id="oe_structure_our_company_top"/>
 
@@ -2330,6 +2343,7 @@
     <template id="project_detail_page_template" name="Project Details - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="project_detail">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="(project.name if project else 'Project Details') + ' | ARFA SPECIALIZED SYSTEMS'"/>
             <div id="wrap" class="oe_structure oe_empty">
                 <!-- Hero Header -->
@@ -2408,8 +2422,8 @@
                             </t>
                             <t t-else="">
                                 <div class="wasm-video-wrapper mb-5 rounded-4 overflow-hidden shadow-sm position-relative" style="max-height: 400px;">
-                                    <video id="wasm_project_video_showcase" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" poster="/wasm/video/poster" style="width:100%; height:400px; object-fit:cover; display:block; cursor:pointer;">
-                                        <source t-att-src="'/wasm/video/showcase?v=' + str(site_config and site_config.write_date or '')" type="video/mp4"/>
+                                    <video id="wasm_project_video_showcase" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" t-att-poster="site_config.wasm_img_url('showcase_poster') or None" preload="metadata" style="width:100%; height:400px; object-fit:cover; display:block; cursor:pointer;">
+                                        <source t-att-src="site_config.wasm_video_url()" type="video/mp4"/>
                                     </video>
                                     <div class="position-absolute top-50 start-50 translate-middle text-center">
                                         <button class="wasm-video-play-btn shadow-lg" type="button" aria-label="Play Project Showcase Video">
@@ -2576,6 +2590,7 @@
     <template id="news_page_template" name="News &amp; Media - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout" pageName.f="news">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="is_en and 'News &amp; Media | ARFA SPECIALIZED SYSTEMS' or 'الأخبار والأنشطة | شركة عرفة للأنظمة المتخصصة'"/>
             <div id="wrap" class="oe_structure oe_empty bg-light">
                 <div class="oe_structure" id="oe_structure_news_top"/>
@@ -2821,6 +2836,7 @@
     <template id="news_detail_page_template" name="News Detail - ARFA SPECIALIZED SYSTEMS">
         <t t-call="website.layout">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="(is_en and (article.title_en or article.name) or article.name) + ' | ARFA SPECIALIZED SYSTEMS'"/>
             <div id="wrap" class="oe_structure oe_empty bg-light">
                 <t t-call="wasm_website.wasm_fluid_hero_header">

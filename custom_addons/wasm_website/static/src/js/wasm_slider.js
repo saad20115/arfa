@@ -1,110 +1,139 @@
 /** @odoo-module **/
-
+/*
+ * ARFA step sliders / marquees.
+ *
+ * Why this file was rewritten:
+ *  The old version cloned slides into the DOM and flagged the slider with
+ *  data-slider-initialized="true". When someone opened the Website Builder and
+ *  pressed Save, those clones + the flag + the inline transform were saved into
+ *  the page (a website-specific copy of the template). After that the slider
+ *  stopped moving, module updates no longer reached the homepage, and every new
+ *  save duplicated the clones again.
+ *
+ *  Now:
+ *   - state is kept in JS memory (WeakMap), never in DOM attributes;
+ *   - clones / flags already saved in a page are cleaned on load;
+ *   - nothing runs while the Website Builder is in edit mode, and everything is
+ *     reverted the moment edit mode starts, so the editor only saves clean HTML.
+ */
 (function () {
     'use strict';
 
-    function initStepSliders() {
-        const sliders = document.querySelectorAll('.wasm-auto-slider, .wasm-marquee-slider, .wasm-gallery-marquee-wrapper');
-        sliders.forEach(function (slider) {
-            if (slider.dataset.sliderInitialized === 'true') return;
-            slider.dataset.sliderInitialized = 'true';
+    var SLIDER_SELECTOR = '.wasm-auto-slider, .wasm-marquee-slider, .wasm-gallery-marquee-wrapper';
+    var TRACK_SELECTOR = '.wasm-slider-track, .wasm-marquee-track, .wasm-gallery-marquee-track';
+    var GAP = 24;
+    var STEP_MS = 2000;
+    var running = new WeakMap();
 
-            const track = slider.querySelector('.wasm-slider-track, .wasm-marquee-track, .wasm-gallery-marquee-track');
-            if (!track) return;
+    function isEditMode() {
+        var body = document.body;
+        return !!(body && (body.classList.contains('editor_enable') ||
+            body.classList.contains('o_edit_mode') ||
+            /[?&]enable_editor=1/.test(window.location.search)));
+    }
 
-            const originalItems = Array.from(track.children);
-            const itemCount = originalItems.length;
-            if (itemCount <= 1) return;
+    function isRTL() {
+        return document.documentElement.dir === 'rtl' ||
+            (document.body && document.body.classList.contains('o_rtl')) ||
+            (document.documentElement.lang || '').indexOf('ar') === 0;
+    }
 
-            // Clone set 2 times for seamless 3-set buffer
-            for (let round = 0; round < 2; round++) {
-                for (let i = 0; i < itemCount; i++) {
-                    const clone = originalItems[i].cloneNode(true);
-                    clone.classList.add('wasm-slider-clone');
-                    track.appendChild(clone);
-                }
+    /* Remove anything an old script version may have baked into the saved page. */
+    function cleanSlider(slider) {
+        delete slider.dataset.sliderInitialized;
+        var track = slider.querySelector(TRACK_SELECTOR);
+        if (!track) return null;
+        track.querySelectorAll('.wasm-slider-clone').forEach(function (c) { c.remove(); });
+        track.style.removeProperty('transform');
+        track.style.removeProperty('transition');
+        if (!track.getAttribute('style')) track.removeAttribute('style');
+        return track;
+    }
+
+    function stopSlider(slider) {
+        var state = running.get(slider);
+        if (state) {
+            clearInterval(state.timer);
+            window.removeEventListener('resize', state.onResize);
+            slider.removeEventListener('mouseenter', state.onEnter);
+            slider.removeEventListener('mouseleave', state.onLeave);
+            running.delete(slider);
+        }
+        cleanSlider(slider);
+    }
+
+    function startSlider(slider) {
+        if (running.has(slider)) return;
+        var track = cleanSlider(slider);
+        if (!track) return;
+
+        var originals = Array.from(track.children);
+        var count = originals.length;
+        if (count <= 1) return;
+
+        for (var round = 0; round < 2; round++) {
+            for (var i = 0; i < count; i++) {
+                var clone = originals[i].cloneNode(true);
+                clone.classList.add('wasm-slider-clone');
+                clone.setAttribute('aria-hidden', 'true');
+                track.appendChild(clone);
             }
+        }
 
-            const direction = slider.dataset.direction || 'left';
-            const intervalTime = 2000; // Exactly 2 seconds per step
-            let currentIndex = (direction === 'right') ? itemCount : 0;
-            let isPaused = false;
+        var direction = slider.dataset.direction || 'left';
+        var index = direction === 'right' ? count : 0;
+        var paused = false;
 
-            function updatePosition(animate) {
-                const firstItem = track.children[0];
-                if (!firstItem) return;
+        function place(animate) {
+            var first = track.children[0];
+            if (!first) return;
+            var offset = index * (first.offsetWidth + GAP);
+            track.style.transition = animate ? 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)' : 'none';
+            track.style.transform = 'translateX(' + (isRTL() ? offset : -offset) + 'px)';
+        }
 
-                const itemWidth = firstItem.offsetWidth + 24; // Width + gap
-                const offset = currentIndex * itemWidth;
-                const isRTL = document.documentElement.dir === 'rtl' || document.body.classList.contains('o_rtl') || document.documentElement.lang === 'ar';
-
-                if (animate === false) {
-                    track.style.transition = 'none';
-                } else {
-                    track.style.transition = 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)';
-                }
-
-                if (isRTL) {
-                    track.style.transform = 'translateX(' + offset + 'px)';
-                } else {
-                    track.style.transform = 'translateX(-' + offset + 'px)';
-                }
+        function step() {
+            if (paused || document.hidden) return;
+            index += direction === 'right' ? -1 : 1;
+            place(true);
+            if (direction === 'right' && index <= 0) {
+                setTimeout(function () { index = count; place(false); }, 600);
+            } else if (direction !== 'right' && index >= count) {
+                setTimeout(function () { index = 0; place(false); }, 600);
             }
+        }
 
-            // Initial positioning without animation
-            updatePosition(false);
+        var state = {
+            timer: setInterval(step, parseInt(slider.dataset.autoInterval, 10) || STEP_MS),
+            onResize: function () { place(false); },
+            onEnter: function () { paused = true; },
+            onLeave: function () { paused = false; },
+        };
+        window.addEventListener('resize', state.onResize);
+        slider.addEventListener('mouseenter', state.onEnter);
+        slider.addEventListener('mouseleave', state.onLeave);
+        running.set(slider, state);
+        place(false);
+    }
 
-            function stepNext() {
-                if (direction === 'right') {
-                    currentIndex--;
-                    updatePosition(true);
-
-                    if (currentIndex <= 0) {
-                        setTimeout(function () {
-                            currentIndex = itemCount;
-                            updatePosition(false);
-                        }, 600);
-                    }
-                } else {
-                    currentIndex++;
-                    updatePosition(true);
-
-                    if (currentIndex >= itemCount) {
-                        setTimeout(function () {
-                            currentIndex = 0;
-                            updatePosition(false);
-                        }, 600);
-                    }
-                }
-            }
-
-            // Step movement every 2 seconds
-            setInterval(function () {
-                if (!isPaused) {
-                    stepNext();
-                }
-            }, intervalTime);
-
-            // Pause on hover
-            slider.addEventListener('mouseenter', function () {
-                isPaused = true;
-            });
-
-            slider.addEventListener('mouseleave', function () {
-                isPaused = false;
-            });
-
-            window.addEventListener('resize', function () {
-                updatePosition(false);
-            });
+    function refresh() {
+        var edit = isEditMode();
+        document.querySelectorAll(SLIDER_SELECTOR).forEach(function (s) {
+            if (edit) { stopSlider(s); } else { startSlider(s); }
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initStepSliders);
-    } else {
-        initStepSliders();
+    function boot() {
+        refresh();
+        // React when the Website Builder toggles edit mode on this document.
+        if (window.MutationObserver && document.body) {
+            new MutationObserver(refresh).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        }
     }
 
-    window.addEventListener('load', initStepSliders);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+        boot();
+    }
 })();
