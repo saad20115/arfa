@@ -537,9 +537,30 @@ class WasmWebsiteController(http.Controller):
             'gallery_items': project.wasm_gallery_items(),
             'gallery_categories': project.wasm_gallery_categories(),
             'floor_rows': project.wasm_floor_rows(),
+            'extra_gallery': self._wasm_extra_gallery(exclude_project=project),
             'site_config': request.env['wasm.site.config'].sudo().get_config(),
         }
         return request.render('wasm_website.project_detail_page_template', values)
+
+    def _wasm_extra_gallery(self, exclude_project=None, limit=12):
+        """Photos from the media gallery (other projects / general), with a static fallback."""
+        domain = [('active', '=', True)]
+        if exclude_project:
+            domain += ['|', ('project_id', '=', False), ('project_id', '!=', exclude_project.id)]
+        records = request.env['wasm.gallery.image'].sudo().search(domain, order='sequence, id desc', limit=limit)
+        items = [{
+            'url': rec.wasm_image_url(),
+            'caption': rec.name or '',
+            'project': rec.project_id.name or '',
+            'project_url': rec.project_id and '/projects/%s' % rec.project_id.id or '',
+        } for rec in records]
+        if not items:
+            base = '/wasm_website/static/src/img/official_live_projects/'
+            for name in ('industrial_park_sudair.webp', 'nora_univ_1.webp', 'nora_univ_2.webp', 'gallery_img_1.webp',
+                         'gallery_img_2.webp', 'gallery_img_5.webp', 'gallery_img_6.webp', 'gallery_img_8.webp',
+                         'gallery_img_9.webp', 'gallery_img_10.webp', 'gallery_img_11.webp', 'gallery_img_14.webp'):
+                items.append({'url': base + name, 'caption': '', 'project': '', 'project_url': ''})
+        return items
 
     @http.route('/wasm/project/<int:project_id>/media/<int:attachment_id>', type='http', auth='public')
     def wasm_project_media(self, project_id, attachment_id, **kw):

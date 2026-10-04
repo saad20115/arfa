@@ -83,18 +83,21 @@
     }
 
     function boot() {
-        var root = document.querySelector('.arfa-pd-gallery');
-        if (!root) return;
-        root.addEventListener('click', function (ev) {
-            if (isEditMode()) return;
-            var btn = ev.target.closest('.arfa-pd-filter');
-            if (btn) { applyFilter(root, btn.getAttribute('data-filter')); return; }
-            var tile = ev.target.closest('.arfa-pd-tile');
-            if (tile) { ev.preventDefault(); open(root, tile); }
+        var roots = document.querySelectorAll('.arfa-pd-gallery');
+        if (!roots.length) return;
+        roots.forEach(function (root) {
+            root.addEventListener('click', function (ev) {
+                if (isEditMode()) return;
+                var btn = ev.target.closest('.arfa-pd-filter');
+                if (btn) { applyFilter(root, btn.getAttribute('data-filter')); return; }
+                var tile = ev.target.closest('.arfa-pd-tile');
+                if (tile) { ev.preventDefault(); open(root, tile); }
+            });
         });
         if (window.MutationObserver && document.body) {
-            new MutationObserver(function () { if (isEditMode()) { applyFilter(root, '*'); close(); } })
-                .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            new MutationObserver(function () {
+                if (isEditMode()) { roots.forEach(function (root) { applyFilter(root, '*'); }); close(); }
+            }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
         }
     }
 

@@ -2348,18 +2348,19 @@
             <t t-set="gallery_items" t-value="gallery_items if gallery_items is not None else project.wasm_gallery_items()"/>
             <t t-set="gallery_categories" t-value="gallery_categories if gallery_categories is not None else project.wasm_gallery_categories()"/>
             <t t-set="floor_rows" t-value="floor_rows if floor_rows is not None else project.wasm_floor_rows()"/>
+            <t t-set="extra_gallery" t-value="extra_gallery or []"/>
             <div id="wrap" class="arfa-pd">
 
                 <!-- 1. Title band -->
                 <section class="arfa-pd-hero">
                     <div class="container">
-                        <nav class="arfa-pd-crumbs" aria-label="Breadcrumb">
+                        <div class="arfa-pd-crumbs" role="navigation" aria-label="Breadcrumb">
                             <a href="/"><t t-if="is_en">Home</t><t t-else="">الرئيسية</t></a>
                             <span aria-hidden="true">/</span>
                             <a href="/projects"><t t-if="is_en">Projects</t><t t-else="">المشاريع</t></a>
                             <span aria-hidden="true">/</span>
                             <span class="arfa-pd-crumb-current" t-out="project.name"/>
-                        </nav>
+                        </div>
                         <div class="arfa-pd-hero-meta">
                             <span class="arfa-pd-pill" t-out="project.wasm_state_label(is_en)"/>
                             <span class="arfa-pd-pill arfa-pd-pill-ghost" t-out="project.wasm_type_label(is_en)"/>
@@ -2400,7 +2401,7 @@
                 <!-- 3. Collapsible sections -->
                 <section class="arfa-pd-sections">
                     <div class="container arfa-pd-narrow">
-                        <details class="arfa-pd-acc" t-if="project.address or project.building_type or project.client_name" open="open">
+                        <details class="arfa-pd-acc">
                             <summary><span><t t-if="is_en">General building information</t><t t-else="">معلومات عامة عن المبنى</t></span><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
                             <div class="arfa-pd-acc-body">
                                 <dl class="arfa-pd-rows">
@@ -2412,15 +2413,19 @@
                             </div>
                         </details>
 
-                        <details class="arfa-pd-acc" t-if="project.description or project.detailed_description">
+                        <details class="arfa-pd-acc">
                             <summary><span><t t-if="is_en">Project description</t><t t-else="">وصف المشروع</t></span><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
                             <div class="arfa-pd-acc-body">
                                 <p class="arfa-pd-lead" t-if="project.description" t-out="project.description"/>
                                 <div class="arfa-pd-richtext" t-if="project.detailed_description" t-out="project.detailed_description"/>
+                                <p t-if="not project.description and not project.detailed_description">
+                                    <t t-out="project.name"/><t t-if="project.location"> — <t t-out="project.location"/></t>.
+                                    <t t-if="is_en">Executed by ARFA in line with the Saudi Building Code.</t><t t-else="">نُفّذ بواسطة عرفة وفق كود البناء السعودي.</t>
+                                </p>
                             </div>
                         </details>
 
-                        <details class="arfa-pd-acc" t-if="floor_rows or project.deliverables">
+                        <details class="arfa-pd-acc">
                             <summary><span><t t-if="is_en">Scope of work &amp; deliverables</t><t t-else="">نطاق العمل والمخرجات</t></span><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
                             <div class="arfa-pd-acc-body">
                                 <dl class="arfa-pd-rows" t-if="floor_rows">
@@ -2430,6 +2435,13 @@
                                     </t>
                                 </dl>
                                 <div class="arfa-pd-richtext" t-if="project.deliverables" t-out="project.deliverables"/>
+                                <dl class="arfa-pd-rows" t-if="not floor_rows and not project.deliverables">
+                                    <dt><t t-if="is_en">Our role</t><t t-else="">دور عرفة</t></dt>
+                                    <dd t-out="project.scope_of_work or project.wasm_type_label(is_en)"/>
+                                    <t t-if="project.area"><dt><t t-if="is_en">Executed area</t><t t-else="">المساحة المنفذة</t></dt><dd><t t-out="'{:,.0f}'.format(project.area)"/> m²</dd></t>
+                                    <dt><t t-if="is_en">Status</t><t t-else="">الحالة</t></dt>
+                                    <dd t-out="project.wasm_state_label(is_en)"/>
+                                </dl>
                             </div>
                         </details>
                     </div>
@@ -2464,8 +2476,32 @@
                     </div>
                 </section>
 
+                <!-- 4b. Additional project photos -->
+                <section class="arfa-pd-gallery arfa-pd-more" t-if="extra_gallery">
+                    <div class="container">
+                        <div class="arfa-pd-gallery-head">
+                            <div>
+                                <h2 class="wasm-section-title text-start"><t t-if="is_en">More from our projects</t><t t-else="">صور إضافية من مشاريعنا</t></h2>
+                                <p class="arfa-pd-more-sub"><t t-if="is_en">A wider look at sites delivered by ARFA across the Kingdom.</t><t t-else="">نظرة أوسع على مواقع نفذتها عرفة في أنحاء المملكة.</t></p>
+                            </div>
+                            <a href="/projects" class="arfa-pd-more-all"><t t-if="is_en">All projects</t><t t-else="">كل المشاريع</t></a>
+                        </div>
+                        <div class="arfa-pd-grid arfa-pd-grid-more">
+                            <t t-foreach="extra_gallery" t-as="g">
+                                <a class="arfa-pd-tile" t-att-href="g['url']" data-cat="all" t-att-data-caption="g['project'] or g['caption']">
+                                    <img t-att-src="g['url']" t-att-alt="g['caption'] or g['project'] or 'ARFA project photo'" loading="lazy"/>
+                                    <span class="arfa-pd-tile-caption" t-if="g['project'] or g['caption']">
+                                        <small t-if="g['project']" t-out="g['project']"/>
+                                        <span t-if="g['caption']" t-out="g['caption']"/>
+                                    </span>
+                                </a>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- 5. Previous / next -->
-                <nav class="arfa-pd-pager" t-if="prev_project or next_project" aria-label="Projects">
+                <div class="arfa-pd-pager" role="navigation" t-if="prev_project or next_project" aria-label="Projects">
                     <div class="container arfa-pd-pager-inner">
                         <a t-if="prev_project" class="arfa-pd-pager-link arfa-pd-prev" t-attf-href="/projects/#{prev_project.id}">
                             <small><t t-if="is_en">Previous project</t><t t-else="">المشروع السابق</t></small>
@@ -2479,7 +2515,7 @@
                             <span t-out="next_project.name"/>
                         </a>
                     </div>
-                </nav>
+                </div>
 
                 <div class="oe_structure" id="oe_structure_project_detail_bottom"/>
             </div>

@@ -43,6 +43,7 @@
             'wasm_website/static/src/js/wasm_typewriter.js',
             'wasm_website/static/src/js/wasm_project_gallery.js',
             'wasm_website/static/src/js/wasm_back_to_top.js',
+            'wasm_website/static/src/js/wasm_motion.js',
         ],
     },
     'installable': True,
