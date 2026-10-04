@@ -2344,144 +2344,144 @@
         <t t-call="website.layout" pageName.f="project_detail">
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
             <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
-            <t t-set="title" t-value="(project.name if project else 'Project Details') + ' | ARFA SPECIALIZED SYSTEMS'"/>
-            <div id="wrap" class="oe_structure oe_empty">
-                <!-- Hero Header -->
-                <t t-call="wasm_website.wasm_fluid_hero_header">
-                    <t t-set="badge_text" t-value="is_en and (project.state == 'completed' and 'Completed Project' or 'In Progress') or (project.state == 'completed' and 'مشروع مكتمل' or 'قيد التنفيذ')"/>
-                    <t t-set="title_text" t-value="project.name"/>
-                    <t t-set="subtitle_text" t-value="project.location"/>
-                </t>
+            <t t-set="title" t-value="project.name + ' | ARFA SPECIALIZED SYSTEMS'"/>
+            <t t-set="gallery_items" t-value="gallery_items if gallery_items is not None else project.wasm_gallery_items()"/>
+            <t t-set="gallery_categories" t-value="gallery_categories if gallery_categories is not None else project.wasm_gallery_categories()"/>
+            <t t-set="floor_rows" t-value="floor_rows if floor_rows is not None else project.wasm_floor_rows()"/>
+            <div id="wrap" class="arfa-pd">
 
-                <!-- Project Content Section -->
-                <section class="py-5 bg-light">
+                <!-- 1. Title band -->
+                <section class="arfa-pd-hero">
                     <div class="container">
-                        <div class="row g-4 mb-5">
-                            <!-- Main Overview Card -->
-                            <div class="col-lg-8">
-                                <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm h-100">
-                                    <h3 class="fw-bold mb-4 text-dark border-bottom pb-3">
-                                        <i class="fa fa-info-circle text-warning me-2"/>
-                                        <span>Project Overview &amp; Technical Scope</span>
-                                    </h3>
-                                    <div class="lead text-dark mb-4" t-out="project.description"/>
-                                    <div class="wasm-project-details text-muted">
-                                        <t t-out="project.detailed_description or ''"/>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Specs &amp; Metadata Card -->
-                            <div class="col-lg-4">
-                                <div class="bg-white p-4 rounded-4 shadow-sm mb-4">
-                                    <h5 class="fw-bold mb-4 text-dark border-bottom pb-2">
-                                        <i class="fa fa-sliders text-warning me-2"/>
-                                        <span>Project Specifications</span>
-                                    </h5>
-                                    <ul class="list-unstyled mb-0">
-                                        <li class="d-flex justify-content-between py-2 border-bottom">
-                                            <span class="text-muted"><t>Project Type</t></span>
-                                            <strong class="text-dark"><t t-out="dict(project._fields['project_type'].selection).get(project.project_type)">
-</t></strong>
-                                        </li>
-                                        <li class="d-flex justify-content-between py-2 border-bottom">
-                                            <span class="text-muted"><t>Executed Area</t></span>
-                                            <strong class="text-dark"><t t-out="project.area"/> m²</strong>
-                                        </li>
-                                        <li class="d-flex justify-content-between py-2 border-bottom">
-                                            <span class="text-muted"><t>Client / Owner</t></span>
-                                            <strong class="text-dark"><t t-out="project.client_name or 'ARFA SPECIALIZED SYSTEMS'"/></strong>
-                                        </li>
-                                        <li class="d-flex justify-content-between py-2 border-bottom">
-                                            <span class="text-muted"><t>Completion Date</t></span>
-                                            <strong class="text-dark"><t t-out="project.completion_date or '2025-12-31'"/></strong>
-                                        </li>
-                                        <li class="d-flex justify-content-between py-2">
-                                            <span class="text-muted"><t>Building Code</t></span>
-                                            <span class="badge bg-success-subtle text-success border border-success px-2 py-1"><i class="fa fa-check me-1"/> <t>SBC Certified</t></span>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+                        <nav class="arfa-pd-crumbs" aria-label="Breadcrumb">
+                            <a href="/"><t t-if="is_en">Home</t><t t-else="">الرئيسية</t></a>
+                            <span aria-hidden="true">/</span>
+                            <a href="/projects"><t t-if="is_en">Projects</t><t t-else="">المشاريع</t></a>
+                            <span aria-hidden="true">/</span>
+                            <span class="arfa-pd-crumb-current" t-out="project.name"/>
+                        </nav>
+                        <div class="arfa-pd-hero-meta">
+                            <span class="arfa-pd-pill" t-out="project.wasm_state_label(is_en)"/>
+                            <span class="arfa-pd-pill arfa-pd-pill-ghost" t-out="project.wasm_type_label(is_en)"/>
                         </div>
-
-                        <!-- Video &amp; Photo Gallery Showcase Section -->
-                        <div class="bg-white p-4 p-md-5 rounded-4 shadow-sm mb-5">
-                            <h3 class="fw-bold mb-4 text-dark border-bottom pb-3">
-                                <i class="fa fa-picture-o text-warning me-2"/>
-                                <span>Project Media Gallery &amp; Video Showcase</span>
-                            </h3>
-
-                            <!-- Video Showcase Container -->
-                            <t t-if="project.video_url">
-                                <div class="mb-5 rounded-4 overflow-hidden shadow-sm">
-                                    <div class="ratio ratio-16x9">
-                                        <iframe t-att-src="project.video_url" allowfullscreen="allowfullscreen"/>
-                                    </div>
-                                </div>
-                            </t>
-                            <t t-else="">
-                                <div class="wasm-video-wrapper mb-5 rounded-4 overflow-hidden shadow-sm position-relative" style="max-height: 400px;">
-                                    <video id="wasm_project_video_showcase" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" t-att-poster="site_config.wasm_img_url('showcase_poster') or None" preload="metadata" style="width:100%; height:400px; object-fit:cover; display:block; cursor:pointer;">
-                                        <source t-att-src="site_config.wasm_video_url()" type="video/mp4"/>
-                                    </video>
-                                    <div class="position-absolute top-50 start-50 translate-middle text-center">
-                                        <button class="wasm-video-play-btn shadow-lg" type="button" aria-label="Play Project Showcase Video">
-                                            <i class="fa fa-play text-warning fs-3"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </t>
-
-                            <!-- Photo Gallery Cards -->
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <div class="rounded-3 overflow-hidden shadow-sm" style="height:200px;">
-                                        <img src="/wasm_website/static/src/img/about_hero.png" alt="Gallery Photo 1" class="w-100 h-100" style="object-fit:cover;"/>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="rounded-3 overflow-hidden shadow-sm" style="height:200px;">
-                                        <img src="/wasm_website/static/src/img/pillar_civil.png" alt="Gallery Photo 2" class="w-100 h-100" style="object-fit:cover;"/>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="rounded-3 overflow-hidden shadow-sm" style="height:200px;">
-                                        <img src="/wasm_website/static/src/img/pillar_mep.png" alt="Gallery Photo 3" class="w-100 h-100" style="object-fit:cover;"/>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Related Projects Section -->
-                        <t t-if="other_projects">
-                            <div class="mt-5">
-                                <h3 class="fw-bold mb-4 text-dark">
-                                    <span>Similar Construction Projects</span>
-                                </h3>
-                                <div class="row g-4">
-                                    <t t-foreach="other_projects" t-as="op">
-                                        <div class="col-md-4">
-                                            <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-sm wasm-hover-card bg-white">
-                                                <a t-attf-href="/projects/#{op.id}">
-                                                    <div class="wasm-project-placeholder position-relative overflow-hidden" style="height:180px;">
-                                                        <img src="/wasm_website/static/src/img/about_hero.png" alt="Project Image" class="w-100 h-100" style="object-fit:cover;"/>
-                                                    </div>
-                                                </a>
-                                                <div class="card-body p-4">
-                                                    <a t-attf-href="/projects/#{op.id}" class="text-decoration-none text-dark">
-                                                        <h6 class="fw-bold mb-2"><t>op.name</t></h6>
-                                                    </a>
-                                                    <p class="text-muted small mb-0"><t>op.location</t></p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </t>
-                                </div>
-                            </div>
-                        </t>
+                        <h1 class="arfa-pd-title" t-out="project.name"/>
+                        <p class="arfa-pd-location" t-if="project.location">
+                            <i class="fa fa-map-marker" role="img" aria-label="Location" title="Location"/> <span t-out="project.location"/>
+                        </p>
                     </div>
                 </section>
+
+                <!-- 2. Main image + facts card -->
+                <section class="arfa-pd-overview">
+                    <div class="container">
+                        <div class="arfa-pd-overview-grid">
+                            <figure class="arfa-pd-cover">
+                                <img t-att-src="project.wasm_main_image_url()" t-att-alt="project.name" loading="eager"/>
+                            </figure>
+                            <aside class="arfa-pd-facts" aria-label="Project facts">
+                                <h2 class="arfa-pd-facts-title"><t t-if="is_en">Project at a glance</t><t t-else="">المشروع في لمحة</t></h2>
+                                <dl class="arfa-pd-facts-list">
+                                    <t t-if="project.scope_of_work"><dt><t t-if="is_en">Our role</t><t t-else="">دور عرفة</t></dt><dd t-out="project.scope_of_work"/></t>
+                                    <t t-if="project.client_name"><dt><t t-if="is_en">Client</t><t t-else="">المالك</t></dt><dd t-out="project.client_name"/></t>
+                                    <t t-if="project.brand_operator"><dt><t t-if="is_en">Brand / Operator</t><t t-else="">العلامة / المشغّل</t></dt><dd t-out="project.brand_operator"/></t>
+                                    <t t-if="project.location"><dt><t t-if="is_en">Location</t><t t-else="">الموقع</t></dt><dd t-out="project.location"/></t>
+                                    <t t-if="project.building_config"><dt><t t-if="is_en">Build</t><t t-else="">تكوين المبنى</t></dt><dd class="arfa-ltr" t-out="project.building_config"/></t>
+                                    <t t-if="project.units_count"><dt><t t-if="is_en">Units / Keys</t><t t-else="">الوحدات / الغرف</t></dt><dd t-out="project.units_count"/></t>
+                                    <t t-if="project.area"><dt><t t-if="is_en">Executed area</t><t t-else="">المساحة المنفذة</t></dt><dd><t t-out="'{:,.0f}'.format(project.area)"/> m²</dd></t>
+                                    <t t-if="project.facilities"><dt><t t-if="is_en">Facilities</t><t t-else="">المرافق</t></dt><dd t-out="project.facilities"/></t>
+                                    <t t-if="project.completion_date"><dt><t t-if="is_en">Completion</t><t t-else="">تاريخ التسليم</t></dt><dd t-out="project.completion_date.strftime('%Y')"/></t>
+                                </dl>
+                                <a href="/quote" class="arfa-pd-facts-cta"><t t-if="is_en">Discuss a similar project</t><t t-else="">ناقشنا في مشروع مماثل</t></a>
+                            </aside>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Collapsible sections -->
+                <section class="arfa-pd-sections">
+                    <div class="container arfa-pd-narrow">
+                        <details class="arfa-pd-acc" t-if="project.address or project.building_type or project.client_name" open="open">
+                            <summary><span><t t-if="is_en">General building information</t><t t-else="">معلومات عامة عن المبنى</t></span><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
+                            <div class="arfa-pd-acc-body">
+                                <dl class="arfa-pd-rows">
+                                    <t t-if="project.address"><dt><t t-if="is_en">Project address</t><t t-else="">عنوان المشروع</t></dt><dd t-out="project.address"/></t>
+                                    <t t-if="project.building_type"><dt><t t-if="is_en">Building type</t><t t-else="">نوع المبنى</t></dt><dd t-out="project.building_type"/></t>
+                                    <t t-if="project.client_name"><dt><t t-if="is_en">Client</t><t t-else="">المالك</t></dt><dd t-out="project.client_name"/></t>
+                                    <dt><t t-if="is_en">Category</t><t t-else="">التصنيف</t></dt><dd t-out="project.wasm_type_label(is_en)"/>
+                                </dl>
+                            </div>
+                        </details>
+
+                        <details class="arfa-pd-acc" t-if="project.description or project.detailed_description">
+                            <summary><span><t t-if="is_en">Project description</t><t t-else="">وصف المشروع</t></span><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
+                            <div class="arfa-pd-acc-body">
+                                <p class="arfa-pd-lead" t-if="project.description" t-out="project.description"/>
+                                <div class="arfa-pd-richtext" t-if="project.detailed_description" t-out="project.detailed_description"/>
+                            </div>
+                        </details>
+
+                        <details class="arfa-pd-acc" t-if="floor_rows or project.deliverables">
+                            <summary><span><t t-if="is_en">Scope of work &amp; deliverables</t><t t-else="">نطاق العمل والمخرجات</t></span><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
+                            <div class="arfa-pd-acc-body">
+                                <dl class="arfa-pd-rows" t-if="floor_rows">
+                                    <t t-foreach="floor_rows" t-as="row">
+                                        <t t-if="row[1]"><dt t-out="row[0]"/><dd t-out="row[1]"/></t>
+                                        <t t-else=""><dt class="arfa-pd-rows-heading" t-out="row[0]"/><dd class="arfa-pd-rows-heading-gap"/></t>
+                                    </t>
+                                </dl>
+                                <div class="arfa-pd-richtext" t-if="project.deliverables" t-out="project.deliverables"/>
+                            </div>
+                        </details>
+                    </div>
+                </section>
+
+                <!-- 4. Gallery with filters -->
+                <section class="arfa-pd-gallery" t-if="gallery_items or project.video_url">
+                    <div class="container">
+                        <div class="arfa-pd-gallery-head">
+                            <h2 class="wasm-section-title text-start"><t t-if="is_en">Project gallery</t><t t-else="">معرض صور المشروع</t></h2>
+                            <div class="arfa-pd-filters" role="tablist" t-if="gallery_categories">
+                                <button type="button" class="arfa-pd-filter is-active" data-filter="*"><t t-if="is_en">All</t><t t-else="">الكل</t></button>
+                                <t t-foreach="gallery_categories" t-as="cat">
+                                    <button type="button" class="arfa-pd-filter" t-att-data-filter="cat['key']" t-out="cat['label']"/>
+                                </t>
+                            </div>
+                        </div>
+                        <div class="arfa-pd-video" t-if="project.video_url">
+                            <div class="ratio ratio-16x9"><iframe t-att-src="project.video_url" t-att-title="project.name" allowfullscreen="allowfullscreen" loading="lazy"/></div>
+                        </div>
+                        <div class="arfa-pd-grid" t-if="gallery_items">
+                            <t t-foreach="gallery_items" t-as="g">
+                                <a class="arfa-pd-tile" t-att-href="g['url']" t-att-data-cat="g['cat']" t-att-data-caption="(g['cat_label'] and (g['cat_label'] + ' — ') or '') + g['caption']">
+                                    <img t-att-src="g['url']" t-att-alt="g['caption']" loading="lazy"/>
+                                    <span class="arfa-pd-tile-caption">
+                                        <small t-if="g['cat_label']" t-out="g['cat_label']"/>
+                                        <span t-out="g['caption']"/>
+                                    </span>
+                                </a>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Previous / next -->
+                <nav class="arfa-pd-pager" t-if="prev_project or next_project" aria-label="Projects">
+                    <div class="container arfa-pd-pager-inner">
+                        <a t-if="prev_project" class="arfa-pd-pager-link arfa-pd-prev" t-attf-href="/projects/#{prev_project.id}">
+                            <small><t t-if="is_en">Previous project</t><t t-else="">المشروع السابق</t></small>
+                            <span t-out="prev_project.name"/>
+                        </a>
+                        <a href="/projects" class="arfa-pd-pager-all" aria-label="All projects">
+                            <i class="fa fa-th-large" aria-hidden="true"/>
+                        </a>
+                        <a t-if="next_project" class="arfa-pd-pager-link arfa-pd-next" t-attf-href="/projects/#{next_project.id}">
+                            <small><t t-if="is_en">Next project</t><t t-else="">المشروع التالي</t></small>
+                            <span t-out="next_project.name"/>
+                        </a>
+                    </div>
+                </nav>
+
+                <div class="oe_structure" id="oe_structure_project_detail_bottom"/>
             </div>
         </t>
     </template>

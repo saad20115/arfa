@@ -525,15 +525,32 @@ class WasmWebsiteController(http.Controller):
         project = request.env['wasm.project'].sudo().browse(project_id)
         if not project.exists() or not project.active:
             return request.redirect('/projects')
-        
+        prev_project, next_project = project.wasm_neighbors()
         other_projects = request.env['wasm.project'].sudo().search(
             [('active', '=', True), ('id', '!=', project.id)], limit=3, order='sequence, id desc'
         )
         values = {
             'project': project,
+            'prev_project': prev_project,
+            'next_project': next_project,
             'other_projects': other_projects,
+            'gallery_items': project.wasm_gallery_items(),
+            'gallery_categories': project.wasm_gallery_categories(),
+            'floor_rows': project.wasm_floor_rows(),
+            'site_config': request.env['wasm.site.config'].sudo().get_config(),
         }
         return request.render('wasm_website.project_detail_page_template', values)
+
+    @http.route('/wasm/project/<int:project_id>/media/<int:attachment_id>', type='http', auth='public')
+    def wasm_project_media(self, project_id, attachment_id, **kw):
+        """Images uploaded in the project's media tab (only if they belong to that project)."""
+        project = request.env['wasm.project'].sudo().browse(project_id)
+        if not project.exists() or not project.active or attachment_id not in project.attachment_ids.ids:
+            return request.not_found()
+        attachment = request.env['ir.attachment'].sudo().browse(attachment_id)
+        if not (attachment.mimetype or '').startswith('image/'):
+            return request.not_found()
+        return self._wasm_stream(attachment, 'datas', filename=attachment.name)
 
     @http.route(['/contact-team', '/contact', '/contactus', '/contact-us'], type='http', auth='public', website=True)
     def wasm_contact_team(self, **kw):

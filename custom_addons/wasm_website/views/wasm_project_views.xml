@@ -30,12 +30,46 @@
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
+                    <group string="بطاقة المشروع في لمحة (تظهر بجانب صورة المشروع)">
+                        <group>
+                            <field name="scope_of_work" placeholder="مثال: تصميم وتنفيذ، أعمال كهروميكانيكية"/>
+                            <field name="brand_operator" placeholder="مثال: Accor Hotels Group"/>
+                            <field name="building_config" placeholder="مثال: B+G+M+14"/>
+                        </group>
+                        <group>
+                            <field name="units_count" placeholder="مثال: 232 غرفة"/>
+                            <field name="facilities" placeholder="مثال: مطاعم، نادي رياضي، مسبح"/>
+                        </group>
+                    </group>
                     <notebook>
                         <page string="الوصف المختصر (يظهر في الكروت)" name="desc">
                             <field name="description" placeholder="وصف موجز للمشروع يظهر في كروت المعرض..."/>
                         </page>
                         <page string="التفاصيل الهندسية والفنية" name="details">
                             <field name="detailed_description" placeholder="شرح هندسي مفصل لمحتوى المشروع والمخرجات..."/>
+                        </page>
+                        <page string="معلومات المبنى ونطاق العمل (أقسام قابلة للطي)" name="building_scope">
+                            <group>
+                                <group string="معلومات عامة عن المبنى">
+                                    <field name="address"/>
+                                    <field name="building_type" placeholder="مثال: برج فندقي 4 نجوم"/>
+                                </group>
+                            </group>
+                            <separator string="توزيع الأدوار / مكونات المشروع (سطر لكل بند بصيغة: البند: الوصف)"/>
+                            <field name="floor_breakdown" nolabel="1" placeholder="الفندق&#10;الدور الأرضي: الاستقبال والردهة والإدارة&#10;الدور الأول: قاعات الاجتماعات&#10;الأدوار 5 - 17: غرف النزلاء والأجنحة"/>
+                            <separator string="نطاق العمل والمخرجات"/>
+                            <field name="deliverables" nolabel="1" placeholder="الأعمال التي نفذتها عرفة في المشروع..."/>
+                        </page>
+                        <page string="صور المشروع حسب الأقسام (فلاتر المعرض)" name="gallery_categorized">
+                            <field name="gallery_image_ids" nolabel="1" context="{'default_project_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="image" widget="image" options="{'size': [90, 60]}"/>
+                                    <field name="name" string="عنوان الصورة (مثال: الدور الأرضي - الاستقبال)"/>
+                                    <field name="category" string="القسم"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="معرض صور وفيديوهات المشروع" name="gallery">
                             <field name="attachment_ids" widget="many2many_binary" string="رفع صور وفيديوهات إضافية للمشروع"/>

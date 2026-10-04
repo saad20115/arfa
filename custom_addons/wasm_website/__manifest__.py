@@ -14,7 +14,7 @@
     'author': 'ARFA SPECIALIZED SYSTEMS',
     'website': 'https://arfa-sa.com',
     'category': 'Website/Website',
-    'version': '19.0.1.1.3',
+    'version': '19.0.1.2.0',
     'depends': ['base', 'web', 'website', 'mail'],
     'data': [
         'security/wasm_security.xml',
@@ -41,6 +41,8 @@
             'wasm_website/static/src/js/wasm_ai_bot.js',
             'wasm_website/static/src/js/wasm_video_player.js',
             'wasm_website/static/src/js/wasm_typewriter.js',
+            'wasm_website/static/src/js/wasm_project_gallery.js',
+            'wasm_website/static/src/js/wasm_back_to_top.js',
         ],
     },
     'installable': True,
