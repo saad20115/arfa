@@ -14,7 +14,7 @@
     'author': 'ARFA SPECIALIZED SYSTEMS',
     'website': 'https://arfa-sa.com',
     'category': 'Website/Website',
-    'version': '19.0.1.2.0',
+    'version': '19.0.1.3.0',
     'depends': ['base', 'web', 'website', 'mail'],
     'data': [
         'security/wasm_security.xml',

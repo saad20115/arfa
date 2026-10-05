@@ -38,6 +38,7 @@
                         </group>
                         <group>
                             <field name="slug" placeholder="عنوان مسار الخبر URL"/>
+                            <field name="image_url" placeholder="https://... (اختياري إذا لم ترفع صورة)"/>
                             <field name="sequence"/>
                             <field name="active"/>
                         </group>
@@ -45,6 +46,13 @@
                     <notebook>
                         <page string="الملخص العربي" name="summary_page">
                             <field name="summary" placeholder="موجز الخبر المعروض في كارت قائمة الأخبار..."/>
+                        </page>
+                        <page string="النسخة الإنجليزية (English)" name="english_page">
+                            <group>
+                                <field name="title_en" placeholder="Article title in English"/>
+                                <field name="summary_en" placeholder="Short English summary for the news card"/>
+                            </group>
+                            <field name="content_en" widget="html" placeholder="Full English article..."/>
                         </page>
                         <page string="محتوى المقال الكامل (HTML)" name="content_page">
                             <field name="content" widget="html" placeholder="اكتب محتوى المقال الهندسي الكامل هنا..."/>

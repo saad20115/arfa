@@ -22,6 +22,107 @@ ALLOWED_FILE_EXTENSIONS = {
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB per file
 MAX_FILES_COUNT = 5  # Maximum number of files per submission
 
+# --- Anti-spam / validation ---------------------------------------------------
+import re as _re
+import time as _time
+from collections import defaultdict as _defaultdict, deque as _deque
+
+EMAIL_RE = _re.compile(r'^[^@\s<>"\']{1,64}@[^@\s<>"\']{1,190}\.[A-Za-z]{2,24}$')
+PHONE_RE = _re.compile(r'^[0-9+()\-\s]{7,20}$')
+FIELD_LIMITS = {'customer_name': 120, 'phone': 20, 'email': 254, 'project_location': 150, 'details': 5000}
+RATE_LIMIT_WINDOW = 600      # seconds
+RATE_LIMIT_MAX = 5           # submissions per IP per window
+MIN_FILL_SECONDS = 3         # faster than this = bot
+_SUBMISSIONS = _defaultdict(_deque)
+BLOCKED_MIMETYPES = ('text/html', 'application/x-msdownload', 'application/x-sh', 'application/javascript',
+                     'image/svg+xml', 'application/x-dosexec', 'application/x-executable')
+
+
+def _client_ip():
+    return request.httprequest.remote_addr or 'unknown'
+
+
+def _wasm_spam_reason(post):
+    """Return a short reason string when the submission looks automated, else None."""
+    # honeypot: hidden field real visitors never fill
+    if (post.get('website_url') or '').strip():
+        return 'honeypot'
+    # time-to-fill check (only when the form provides the timestamp)
+    ts = post.get('form_ts')
+    if ts and str(ts).isdigit():
+        elapsed = _time.time() - int(ts) / 1000.0
+        if 0 <= elapsed < MIN_FILL_SECONDS:
+            return 'too_fast'
+    # per-IP rate limit (per worker process)
+    now = _time.time()
+    q = _SUBMISSIONS[_client_ip()]
+    while q and now - q[0] > RATE_LIMIT_WINDOW:
+        q.popleft()
+    if len(q) >= RATE_LIMIT_MAX:
+        return 'rate_limit'
+    q.append(now)
+    if len(_SUBMISSIONS) > 5000:          # keep memory bounded
+        _SUBMISSIONS.clear()
+    return None
+
+
+_DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789')
+
+
+def _clean(post, key):
+    value = (post.get(key) or '').strip()
+    if key == 'phone':
+        value = value.translate(_DIGITS)       # accept Arabic-Indic digits
+    limit = FIELD_LIMITS.get(key)
+    return value[:limit] if limit else value
+
+
+def _valid_contact(email, phone):
+    return bool(EMAIL_RE.match(email)) and bool(PHONE_RE.match(phone))
+
+
+def _parse_date(value):
+    try:
+        from datetime import date
+        return date.fromisoformat(value).isoformat() if value else False
+    except (ValueError, TypeError):
+        return False
+
+
+# --- SEO: sitemap entries for detail pages, 301 redirects for duplicate URLs ---
+def _sitemap_projects(env, rule, qs):
+    for project in env['wasm.project'].sudo().search([('active', '=', True)]):
+        loc = '/projects/%s' % project.id
+        if not qs or qs.lower() in loc:
+            entry = {'loc': loc}
+            if project.write_date:
+                entry['lastmod'] = project.write_date.date()
+            yield entry
+
+
+def _sitemap_news(env, rule, qs):
+    for article in env['wasm.news'].sudo().search([('active', '=', True)]):
+        loc = '/news/%s' % article.id
+        if not qs or qs.lower() in loc:
+            entry = {'loc': loc}
+            if article.write_date:
+                entry['lastmod'] = article.write_date.date()
+            yield entry
+
+
+SEO_REDIRECTS = {
+    '/about-us': '/about',
+    '/our-group': '/our-company',
+    '/group-companies': '/our-company',
+    '/our-services': '/services',
+    '/our-projects': '/projects',
+    '/contact': '/contactus',
+    '/contact-us': '/contactus',
+    '/our-news': '/news',
+    '/blog': '/news',
+    '/blog/2': '/news',
+}
+
 
 class WasmWebsiteController(http.Controller):
 
@@ -450,11 +551,11 @@ class WasmWebsiteController(http.Controller):
         config = request.env['wasm.site.config'].sudo().get_config()
         return self._wasm_stream(config, 'showcase_bg_image')
 
-    @http.route(['/about', '/about-us'], type='http', auth='public', website=True)
+    @http.route('/about', type='http', auth='public', website=True)
     def wasm_about(self, **kw):
         return request.render('wasm_website.about_page_template', {})
 
-    @http.route(['/our-company', '/our-group', '/group-companies'], type='http', auth='public', website=True)
+    @http.route('/our-company', type='http', auth='public', website=True)
     def wasm_our_company(self, **kw):
         site_config = request.env['wasm.site.config'].sudo().get_config()
         values = {
@@ -472,14 +573,14 @@ class WasmWebsiteController(http.Controller):
         # Bundled file: served by the static file handler (streamed, cached, range requests).
         return request.redirect('/wasm_website/static/src/pdf/arfa_company_profile.pdf')
 
-    @http.route(['/services', '/our-services'], type='http', auth='public', website=True)
+    @http.route('/services', type='http', auth='public', website=True)
     def wasm_services(self, **kw):
         services = request.env['wasm.service'].sudo().search(
             [('active', '=', True)], order='sequence, id'
         )
         return request.render('wasm_website.services_page_template', {'services': services})
 
-    @http.route(['/projects', '/our-projects'], type='http', auth='public', website=True)
+    @http.route('/projects', type='http', auth='public', website=True)
     def wasm_projects(self, state=None, **kw):
         domain = [('active', '=', True)]
         if state in ('completed', 'in_progress'):
@@ -520,7 +621,7 @@ class WasmWebsiteController(http.Controller):
         }
         return request.render('wasm_website.projects_page_template', values)
 
-    @http.route(['/projects/<int:project_id>', '/project/<int:project_id>'], type='http', auth='public', website=True)
+    @http.route('/projects/<int:project_id>', type='http', auth='public', website=True, sitemap=_sitemap_projects)
     def wasm_project_detail(self, project_id, **kw):
         project = request.env['wasm.project'].sudo().browse(project_id)
         if not project.exists() or not project.active:
@@ -573,7 +674,7 @@ class WasmWebsiteController(http.Controller):
             return request.not_found()
         return self._wasm_stream(attachment, 'datas', filename=attachment.name)
 
-    @http.route(['/contact-team', '/contact', '/contactus', '/contact-us'], type='http', auth='public', website=True)
+    @http.route(['/contactus', '/contact-team'], type='http', auth='public', website=True)
     def wasm_contact_team(self, **kw):
         return request.render('wasm_website.contact_team_page_template', {})
 
@@ -595,14 +696,21 @@ class WasmWebsiteController(http.Controller):
     @http.route('/quote/submit', type='http', auth='public', methods=['POST'],
                 website=True, csrf=True)
     def wasm_quote_submit(self, **post):
+        spam = _wasm_spam_reason(post)
+        if spam:
+            _logger.info('Quote form rejected (%s) from %s', spam, _client_ip())
+            return request.redirect('/quote?error=%s' % ('rate_limit' if spam == 'rate_limit' else 'invalid'))
+
         # --- Input Validation ---
-        customer_name = (post.get('customer_name') or '').strip()
-        phone = (post.get('phone') or '').strip()
-        email = (post.get('email') or '').strip()
-        project_location = (post.get('project_location') or '').strip()
+        customer_name = _clean(post, 'customer_name')
+        phone = _clean(post, 'phone')
+        email = _clean(post, 'email')
+        project_location = _clean(post, 'project_location')
 
         if not customer_name or not phone or not email or not project_location:
             return request.redirect('/quote?error=missing_fields')
+        if not _valid_contact(email, phone):
+            return request.redirect('/quote?error=invalid_contact')
 
         customer_type = post.get('customer_type', 'company')
         if customer_type not in ALLOWED_CUSTOMER_TYPES:
@@ -616,22 +724,22 @@ class WasmWebsiteController(http.Controller):
         if department not in ALLOWED_DEPARTMENTS:
             department = 'sales'
 
-        details = (post.get('details') or '').strip()
+        details = _clean(post, 'details')
 
         service_id = post.get('service_id')
         service_id = int(service_id) if service_id and str(service_id).isdigit() else False
 
         try:
-            area = float(post.get('area') or 0.0)
+            area = max(0.0, min(float(post.get('area') or 0.0), 1e9))
         except (ValueError, TypeError):
             area = 0.0
 
         try:
-            approx_budget = float(post.get('approx_budget') or 0.0)
+            approx_budget = max(0.0, min(float(post.get('approx_budget') or 0.0), 1e12))
         except (ValueError, TypeError):
             approx_budget = 0.0
 
-        expected_start_date = post.get('expected_start_date') or False
+        expected_start_date = _parse_date(post.get('expected_start_date'))
 
         # --- Create Quote Request ---
         quote = request.env['wasm.quote.request'].sudo().create({
@@ -682,8 +790,18 @@ class WasmWebsiteController(http.Controller):
                 )
                 continue
 
+            # Check the real content type, not only the extension
+            try:
+                from odoo.tools.mimetypes import guess_mimetype
+                sniffed = guess_mimetype(file_content[:4096]) or ''
+            except Exception:
+                sniffed = ''
+            if sniffed in BLOCKED_MIMETYPES:
+                _logger.warning('Quote %s: Rejected file %s (content type %s)', quote.name, uploaded_file.filename, sniffed)
+                continue
+
             # Sanitize filename
-            safe_filename = os.path.basename(uploaded_file.filename)
+            safe_filename = os.path.basename(uploaded_file.filename.replace('\\', '/'))[:120]
 
             attachment = request.env['ir.attachment'].sudo().create({
                 'name': safe_filename,
@@ -704,14 +822,21 @@ class WasmWebsiteController(http.Controller):
     @http.route(['/contactus/submit', '/contact/submit'], type='http', auth='public', methods=['POST'],
                 website=True, csrf=True)
     def wasm_contactus_submit(self, **post):
-        customer_name = (post.get('customer_name') or '').strip()
-        phone = (post.get('phone') or '').strip()
-        email = (post.get('email') or '').strip()
-        project_location = (post.get('project_location') or 'الرياض').strip()
-        details = (post.get('details') or '').strip()
+        spam = _wasm_spam_reason(post)
+        if spam:
+            _logger.info('Contact form rejected (%s) from %s', spam, _client_ip())
+            return request.redirect('/contactus?error=%s' % ('rate_limit' if spam == 'rate_limit' else 'invalid'))
+
+        customer_name = _clean(post, 'customer_name')
+        phone = _clean(post, 'phone')
+        email = _clean(post, 'email')
+        project_location = _clean(post, 'project_location') or 'غير محدد'
+        details = _clean(post, 'details')
 
         if not customer_name or not phone or not email or not details:
             return request.redirect('/contactus?error=missing_fields')
+        if not _valid_contact(email, phone):
+            return request.redirect('/contactus?error=invalid_contact')
 
         customer_type = post.get('customer_type', 'company')
         if customer_type not in ALLOWED_CUSTOMER_TYPES:
@@ -739,7 +864,7 @@ class WasmWebsiteController(http.Controller):
 
         return request.redirect(f'/quote/thanks?token={quote.access_token}')
 
-    @http.route('/quote/thanks', type='http', auth='public', website=True)
+    @http.route('/quote/thanks', type='http', auth='public', website=True, sitemap=False)
     def wasm_quote_thanks(self, token=None, **kw):
         """Display quote confirmation page. Uses access_token for safe lookup."""
         quote = False
@@ -757,32 +882,54 @@ class WasmWebsiteController(http.Controller):
     def wasm_location(self, **kw):
         return request.render('wasm_website.location_page_template', {})
 
-    @http.route('/robots.txt', type='http', auth='public')
+    @http.route(list(SEO_REDIRECTS), type='http', auth='public', website=True, sitemap=False)
+    def wasm_seo_redirect(self, **kw):
+        """Old / duplicate addresses -> one canonical URL (301 keeps search ranking)."""
+        target = SEO_REDIRECTS.get(request.httprequest.path.rstrip('/') or '/', '/')
+        return request.redirect(target, code=301)
+
+    @http.route('/project/<int:project_id>', type='http', auth='public', website=True, sitemap=False)
+    def wasm_project_legacy(self, project_id, **kw):
+        return request.redirect('/projects/%s' % project_id, code=301)
+
+    @http.route('/robots.txt', type='http', auth='public', sitemap=False)
     def wasm_robots_txt(self, **kw):
-        robots_content = """User-agent: *
-Allow: /
-Allow: /services
-Allow: /projects
-Allow: /about-us
-Allow: /our-company
-Allow: /news
-Allow: /contactus
-Allow: /quote
-Disallow: /web/login
-Disallow: /web/signup
-Disallow: /web/reset_password
+        base = request.httprequest.url_root.rstrip('/')
+        lines = [
+            '# ARFA Construction & Specialized Systems',
+            'User-agent: *',
+            'Allow: /',
+            'Disallow: /web',
+            'Disallow: /odoo',
+            'Disallow: /my',
+            'Disallow: /quote/thanks',
+            'Disallow: /quote/submit',
+            'Disallow: /contactus/submit',
+            '',
+            '# AI assistants and AI search engines are welcome to read the public pages',
+        ]
+        for bot in ('GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User',
+                    'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended', 'Bingbot', 'CCBot'):
+            lines += ['User-agent: %s' % bot, 'Allow: /', 'Disallow: /web', 'Disallow: /my', '']
+        lines += ['Sitemap: %s/sitemap.xml' % base, '', '# Plain-language summary for AI tools: %s/llms.txt' % base]
+        return request.make_response('\n'.join(lines) + '\n', headers=[
+            ('Content-Type', 'text/plain; charset=utf-8'),
+            ('Cache-Control', 'public, max-age=3600'),
+        ])
 
-Sitemap: https://arfa-sa.com/sitemap.xml
-"""
-        return request.make_response(
-            robots_content,
-            headers=[
-                ('Content-Type', 'text/plain; charset=utf-8'),
-                ('Cache-Control', 'public, max-age=86400'),
-            ]
-        )
+    @http.route(['/llms.txt', '/.well-known/llms.txt'], type='http', auth='public', sitemap=False)
+    def wasm_llms_txt(self, **kw):
+        """Markdown summary of the company for AI assistants / AI search (llms.txt convention)."""
+        env = request.env
+        base = request.httprequest.url_root.rstrip('/')
+        cfg = env['wasm.site.config'].sudo().get_config()
+        text = cfg.wasm_llms_text(base)
+        return request.make_response(text, headers=[
+            ('Content-Type', 'text/markdown; charset=utf-8'),
+            ('Cache-Control', 'public, max-age=3600'),
+        ])
 
-    @http.route(['/news', '/our-news', '/blog', '/blog/2'], type='http', auth='public', website=True)
+    @http.route('/news', type='http', auth='public', website=True)
     def wasm_news(self, **kw):
         site_config = request.env['wasm.site.config'].sudo().get_config()
         articles = request.env['wasm.news'].sudo().search([('active', '=', True)], order='sequence, date desc, id desc')
@@ -791,7 +938,7 @@ Sitemap: https://arfa-sa.com/sitemap.xml
             'articles': articles,
         })
 
-    @http.route(['/news/<int:article_id>'], type='http', auth='public', website=True)
+    @http.route('/news/<int:article_id>', type='http', auth='public', website=True, sitemap=_sitemap_news)
     def wasm_news_detail(self, article_id, **kw):
         article = request.env['wasm.news'].sudo().browse(article_id)
         if not article.exists() or not article.active:

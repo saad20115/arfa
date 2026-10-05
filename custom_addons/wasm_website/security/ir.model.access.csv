@@ -1,5 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_wasm_quote_request_internal,wasm.quote.request.internal,model_wasm_quote_request,base.group_user,1,0,0,0
 access_wasm_quote_request_user,wasm.quote.request.user,model_wasm_quote_request,wasm_website.group_wasm_user,1,1,1,1
 access_wasm_quote_request_manager,wasm.quote.request.manager,model_wasm_quote_request,wasm_website.group_wasm_manager,1,1,1,1
 access_wasm_project_internal,wasm.project.internal,model_wasm_project,base.group_user,1,0,0,0

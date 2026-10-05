@@ -6,83 +6,17 @@
          ============================================================ -->
     <template id="wasm_head_fonts" inherit_id="website.layout" name="Wasm Head Fonts">
         <xpath expr="//head" position="inside">
-            <!-- SEO Best Practices & Search Engine Compatibility Meta Tags -->
+            <!-- SEO / AI search (all values come from "وسائط وتكوين الموقع" in the backend).
+                 Description, Open Graph, Twitter cards, canonical and hreflang are produced by Odoo
+                 itself (editable per page with "Optimize SEO"); the defaults are set in wasm_seo_defaults. -->
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
             <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
-            <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
-            <meta name="author" content="ARFA SPECIALIZED SYSTEMS"/>
-            <meta name="publisher" content="ARFA SPECIALIZED SYSTEMS"/>
-            
-            <t t-if="is_en">
-                <meta name="description" content="ARFA SPECIALIZED SYSTEMS - Leading engineering &amp; construction contractor in Saudi Arabia specializing in structural building, MEP electromechanical systems, smart BMS automation, fire protection, and infrastructure."/>
-                <meta name="keywords" content="ARFA SPECIALIZED SYSTEMS, MEP Contractor Saudi Arabia, Structural Engineering Riyadh, SBC Code Construction, Smart Building BMS, Fire Fighting Systems, Medical Gas, Solar Energy"/>
-            </t>
-            <t t-else="">
-                <meta name="description" content="شركة عرفة للأنظمة المتخصصة - رائدة في مجال التخطيط والإنشاءات الخرسانية، أنظمة الكهروميكانيك MEP، المباني الذكية BMS، والوقاية من الحريق ممتثلة لكود البناء السعودي SBC."/>
-                <meta name="keywords" content="شركة عرفة للأنظمة المتخصصة, مقاولات الرياض, كهروميكانيك السعودية, كود البناء السعودي, مباني ذكية BMS, أنظمة إطفاء الحريق, غازات طبية, طاقة شمسية"/>
-            </t>
-
-            <!-- Open Graph Social Sharing Cards (WhatsApp, LinkedIn, Twitter, Facebook) -->
-            <meta property="og:site_name" content="ARFA SPECIALIZED SYSTEMS | شركة عرفة للأنظمة المتخصصة"/>
-            <meta property="og:type" content="website"/>
-            <meta property="og:title" content="ARFA SPECIALIZED SYSTEMS | شركة عرفة للأنظمة المتخصصة"/>
-            <t t-if="is_en">
-                <meta property="og:description" content="Pioneering Engineering &amp; Construction Excellence in Saudi Arabia. Structural Design, MEP Infrastructure, and Smart Systems."/>
-            </t>
-            <t t-else="">
-                <meta property="og:description" content="شركة عرفة للأنظمة المتخصصة - الريادة في الهندسة والمقاولات العامة والأنظمة الكهروميكانيكية والمباني الذكية بالرياض."/>
-            </t>
-            <meta property="og:image" content="/web/image/website/1/logo/ARFA%20SPECIALIZED%20SYSTEMS"/>
-
-            <!-- Twitter Cards -->
-            <meta name="twitter:card" content="summary_large_image"/>
-            <meta name="twitter:title" content="ARFA SPECIALIZED SYSTEMS | شركة عرفة للأنظمة المتخصصة"/>
-            <t t-if="is_en">
-                <meta name="twitter:description" content="Pioneering Engineering &amp; Construction Excellence in Saudi Arabia. SBC Certified MEP &amp; Structural Contracting."/>
-            </t>
-            <t t-else="">
-                <meta name="twitter:description" content="شركة عرفة للأنظمة المتخصصة - الريادة في الهندسة والمقاولات العامة والأنظمة الكهروميكانيكية والمباني الذكية بالرياض."/>
-            </t>
-
-            <!-- Geo & Location Tags -->
-            <meta name="geo.region" content="SA-01"/>
-            <meta name="geo.placename" content="Riyadh"/>
-            <meta name="geo.position" content="24.793;46.652"/>
-            <meta name="ICBM" content="24.793, 46.652"/>
-
-            <!-- Google Rich Snippets (Schema.org JSON-LD) -->
-            <script type="application/ld+json">
-            {
-                "@context": "https://schema.org",
-                "@type": "GeneralContractor",
-                "name": "شركة عرفة للأنظمة المتخصصة | ARFA SPECIALIZED SYSTEMS",
-                "alternateName": "ARFA SPECIALIZED SYSTEMS",
-                "url": "https://arfa-sa.com",
-                "logo": "https://arfa-sa.com/web/image/website/1/logo/ARFA%20SPECIALIZED%20SYSTEMS",
-                "telephone": "+966112345678",
-                "email": "info@arfa-sa.com",
-                "priceRange": "$$$",
-                "address": {
-                    "@type": "PostalAddress",
-                    "streetAddress": "طريق الملك فهد - حي الصحافة",
-                    "addressLocality": "الرياض",
-                    "addressRegion": "منطقة الرياض",
-                    "postalCode": "13321",
-                    "addressCountry": "SA"
-                },
-                "geo": {
-                    "@type": "GeoCoordinates",
-                    "latitude": 24.793,
-                    "longitude": 46.652
-                },
-                "openingHoursSpecification": {
-                    "@type": "OpeningHoursSpecification",
-                    "dayOfWeek": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
-                    "opens": "08:00",
-                    "closes": "17:00"
-                }
-            }
-            </script>
+            <meta t-if="not no_index" name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+            <meta name="author" t-att-content="site_config.brand_name_en or 'ARFA Construction &amp; Specialized Systems'"/>
+            <meta name="theme-color" content="#192754"/>
+            <link rel="alternate" type="text/markdown" title="Company brief for AI assistants (llms.txt)" href="/llms.txt"/>
+            <script type="application/ld+json" t-out="site_config.wasm_jsonld(request.httprequest.url_root, title and title.split(' | ')[0] or None, request.httprequest.path, is_en)"/>
+            <script type="application/json" id="arfa-site-data" t-out="site_config.wasm_social_json()"/>
 
             <link rel="preconnect" href="https://fonts.googleapis.com"/>
             <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
@@ -428,6 +362,21 @@
                 }
             ]]>
             </style>
+        </xpath>
+    </template>
+
+    <!-- Per-page <title>, description and Open Graph/Twitter titles (computed in <head>:
+         t-set values from a page body do not reach <head> in Odoo 19). Anything typed in
+         "Optimize SEO" for a page still takes priority. -->
+    <template id="wasm_seo_defaults" inherit_id="website.layout" name="ARFA SEO defaults">
+        <xpath expr="//head/*[1]" position="before">
+            <t t-set="arfa_is_en" t-value="request.env.lang and request.env.lang.startswith('en') or False"/>
+            <t t-set="arfa_meta" t-value="request.env['wasm.site.config'].sudo().get_config().wasm_page_meta(request.httprequest.path, arfa_is_en, main_object=main_object, project=project, article=article, service_info=service_info)"/>
+            <t t-if="not title and arfa_meta.get('title')" t-set="title" t-value="arfa_meta['title']"/>
+            <t t-set="website_meta_description" t-value="website_meta_description or arfa_meta.get('description')"/>
+        </xpath>
+        <xpath expr="//t[@t-set='meta_description']" position="after">
+            <t t-set="nothing" t-value="request.env['wasm.site.config'].sudo().wasm_patch_social_meta(website_meta, arfa_meta.get('title') and title, meta_description, arfa_is_en, request.httprequest.url_root)"/>
         </xpath>
     </template>
 
@@ -1384,65 +1333,15 @@
     <!-- ============================================================
          REUSABLE FLUID ANIMATED HERO HEADER TEMPLATE
          ============================================================ -->
+    <!-- Shared animated gold wave divider (bottom of every page hero) -->
+    <!-- The gold swoosh under each page hero is drawn by CSS on the hero itself
+         (static/src/img/arfa_swoosh_*.svg); this marker is kept for the pages that call it. -->
+    <template id="wasm_wave_divider" name="ARFA Gold Swoosh Divider">
+        <span class="arfa-waves" aria-hidden="true"/>
+    </template>
+
     <template id="wasm_fluid_hero_header" name="Wasm Fluid Animated Hero Header">
-        <!-- Liquid Animated Curved Wave Hero Header (100% Smooth Organic Bezier S-Curves, Right Height > 90%) -->
-        <style>
-            @keyframes liquidWaveSway1 {
-                0% { transform: translate3d(0, 0, 0); }
-                50% { transform: translate3d(-35px, 8px, 0); }
-                100% { transform: translate3d(0, 0, 0); }
-            }
-            @keyframes liquidWaveSway2 {
-                0% { transform: translate3d(0, 0, 0); }
-                50% { transform: translate3d(35px, -8px, 0); }
-                100% { transform: translate3d(0, 0, 0); }
-            }
-            .wasm-fluid-hero-section {
-                position: relative;
-                background: radial-gradient(1200px 420px at 85% 0%, rgba(242, 185, 30, 0.16) 0%, rgba(242, 185, 30, 0) 60%), linear-gradient(135deg, #192754 0%, #22305E 60%, #2A3B73 100%) !important;
-                padding: 115px 0 175px 0 !important;
-                overflow: hidden;
-                border: none !important;
-            }
-            .wasm-liquid-wave-1 {
-                position: absolute;
-                bottom: -35px;
-                left: -10%;
-                width: 120%;
-                height: 285px;
-                z-index: 2;
-                pointer-events: none;
-                animation: liquidWaveSway1 12s ease-in-out infinite;
-            }
-            .wasm-liquid-wave-2 {
-                position: absolute;
-                bottom: -35px;
-                left: -10%;
-                width: 120%;
-                height: 270px;
-                z-index: 3;
-                pointer-events: none;
-                animation: liquidWaveSway2 16s ease-in-out infinite;
-            }
-            .wasm-fluid-hero-content {
-                position: relative;
-                z-index: 5;
-                max-width: 880px;
-                margin: 0 auto;
-            }
-        </style>
-
         <section class="wasm-fluid-hero-section text-center">
-            <!-- Layer 1: Ultra-Smooth Gold Liquid Wave Accent (Harmonious Organic S-Curve) -->
-            <svg class="wasm-liquid-wave-1" viewBox="0 0 1440 300" preserveAspectRatio="none">
-                <path fill="rgba(232, 163, 23, 0.45)" d="M0,155 C360,230 720,165 1080,80 C1260,35 1380,15 1440,10 L1440,500 L0,500 Z"></path>
-            </svg>
-
-            <!-- Layer 2: Seamless Ultra-Smooth White Cut-Out Wave (Right Side Height > 90%) -->
-            <svg class="wasm-liquid-wave-2" viewBox="0 0 1440 300" preserveAspectRatio="none">
-                <path fill="#ffffff" d="M0,170 C360,245 720,180 1080,95 C1260,50 1380,30 1440,25 L1440,500 L0,500 Z"></path>
-            </svg>
-
             <div class="container position-relative" style="z-index: 5;">
                 <div class="wasm-fluid-hero-content">
                     <t t-if="badge_text">
@@ -1461,6 +1360,7 @@
                     </t>
                 </div>
             </div>
+            <t t-call="wasm_website.wasm_wave_divider"/>
         </section>
     </template>
 
@@ -1885,6 +1785,16 @@
                                 <div class="bg-white p-5 rounded-4 shadow-lg wasm-quote-form-container">
                                     <form action="/quote/submit" method="post" enctype="multipart/form-data">
                                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <!-- anti-spam: honeypot (hidden from people) + fill-time stamp -->
+                                        <div class="arfa-hp" aria-hidden="true"><label>Website<input type="text" name="website_url" tabindex="-1" autocomplete="off"/></label></div>
+                                        <input type="hidden" name="form_ts" class="arfa-form-ts" value=""/>
+                                        <t t-set="form_error" t-value="request.params.get('error')"/>
+                                        <div t-if="form_error" class="alert alert-warning arfa-form-alert" role="alert">
+                                            <t t-if="form_error == 'missing_fields'"><t t-if="is_en">Please fill in all required fields.</t><t t-else="">يرجى تعبئة جميع الحقول المطلوبة.</t></t>
+                                            <t t-elif="form_error == 'invalid_contact'"><t t-if="is_en">Please check the e-mail address and mobile number.</t><t t-else="">يرجى التأكد من البريد الإلكتروني ورقم الجوال.</t></t>
+                                            <t t-elif="form_error == 'rate_limit'"><t t-if="is_en">Too many requests were sent. Please try again in a few minutes.</t><t t-else="">تم إرسال طلبات كثيرة، يرجى المحاولة بعد دقائق.</t></t>
+                                            <t t-else=""><t t-if="is_en">Your request could not be sent. Please try again.</t><t t-else="">تعذر إرسال الطلب، يرجى المحاولة مرة أخرى.</t></t>
+                                        </div>
                                         <h4 class="fw-bold text-dark border-bottom pb-2 mb-4">
                                             <i class="fa fa-user me-2 text-warning"></i>
                                             <span>Client Information</span>
@@ -2096,6 +2006,16 @@
 
                                     <form action="/contactus/submit" method="post" class="wasm-form-validation">
                                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <!-- anti-spam: honeypot (hidden from people) + fill-time stamp -->
+                                        <div class="arfa-hp" aria-hidden="true"><label>Website<input type="text" name="website_url" tabindex="-1" autocomplete="off"/></label></div>
+                                        <input type="hidden" name="form_ts" class="arfa-form-ts" value=""/>
+                                        <t t-set="form_error" t-value="request.params.get('error')"/>
+                                        <div t-if="form_error" class="alert alert-warning arfa-form-alert" role="alert">
+                                            <t t-if="form_error == 'missing_fields'"><t t-if="is_en">Please fill in all required fields.</t><t t-else="">يرجى تعبئة جميع الحقول المطلوبة.</t></t>
+                                            <t t-elif="form_error == 'invalid_contact'"><t t-if="is_en">Please check the e-mail address and mobile number.</t><t t-else="">يرجى التأكد من البريد الإلكتروني ورقم الجوال.</t></t>
+                                            <t t-elif="form_error == 'rate_limit'"><t t-if="is_en">Too many requests were sent. Please try again in a few minutes.</t><t t-else="">تم إرسال طلبات كثيرة، يرجى المحاولة بعد دقائق.</t></t>
+                                            <t t-else=""><t t-if="is_en">Your request could not be sent. Please try again.</t><t t-else="">تعذر إرسال الطلب، يرجى المحاولة مرة أخرى.</t></t>
+                                        </div>
                                         
                                         <div class="row g-3">
                                             <div class="col-md-6">
@@ -2345,6 +2265,7 @@
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
             <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="project.name + ' | ARFA SPECIALIZED SYSTEMS'"/>
+            <t t-set="meta_description_page" t-value="(project.description or ((project.name or '') + ' — ' + (project.location or '') + '. ' + (project.scope_of_work or project.wasm_type_label(is_en))))[:300]"/>
             <t t-set="gallery_items" t-value="gallery_items if gallery_items is not None else project.wasm_gallery_items()"/>
             <t t-set="gallery_categories" t-value="gallery_categories if gallery_categories is not None else project.wasm_gallery_categories()"/>
             <t t-set="floor_rows" t-value="floor_rows if floor_rows is not None else project.wasm_floor_rows()"/>
@@ -2370,6 +2291,7 @@
                             <i class="fa fa-map-marker" role="img" aria-label="Location" title="Location"/> <span t-out="project.location"/>
                         </p>
                     </div>
+                    <t t-call="wasm_website.wasm_wave_divider"/>
                 </section>
 
                 <!-- 2. Main image + facts card -->
@@ -2527,6 +2449,7 @@
         <t t-call="website.layout">
             <t t-set="is_en" t-value="True"/>
             <t t-set="title" t-value="(service_info.get('title_en') or service_info.get('title_ar') or 'Service Details') + ' | ARFA SPECIALIZED SYSTEMS'"/>
+            <t t-set="meta_description_page" t-value="(service_info.get('subtitle_en') or service_info.get('subtitle_ar') or '')[:300]"/>
             <div id="wrap" class="wasm-site-wrapper bg-light">
                 <!-- Hero Banner Section -->
                 <t t-call="wasm_website.wasm_fluid_hero_header">
@@ -2874,6 +2797,7 @@
             <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
             <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
             <t t-set="title" t-value="(is_en and (article.title_en or article.name) or article.name) + ' | ARFA SPECIALIZED SYSTEMS'"/>
+            <t t-set="meta_description_page" t-value="(is_en and (article.summary_en or article.summary_ar) or (article.summary_ar or article.summary_en) or '')[:300]"/>
             <div id="wrap" class="oe_structure oe_empty bg-light">
                 <t t-call="wasm_website.wasm_fluid_hero_header">
                     <t t-set="badge_text" t-value="article.category or (is_en and 'NEWS &amp; MEDIA' or 'الأخبار والأنشطة')"/>

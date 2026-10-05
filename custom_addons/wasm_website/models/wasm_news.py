@@ -10,6 +10,15 @@ class WasmNews(models.Model):
     slug = fields.Char(string='URL Slug')
     summary = fields.Text(string='Article Summary', help='Short summary displayed on news listing card')
     content = fields.Html(string='Full Article Content', help='Rich text content for full article body')
+
+    # Bilingual fields used by the website templates (the templates expected them but they
+    # did not exist, so /news crashed as soon as an article was published).
+    title_en = fields.Char(string='Article Title (English)')
+    summary_ar = fields.Text(related='summary', readonly=False, string='Summary (Arabic)')
+    summary_en = fields.Text(string='Summary (English)')
+    content_ar = fields.Html(related='content', readonly=False, string='Content (Arabic)')
+    content_en = fields.Html(string='Content (English)')
+    image_url = fields.Char(string='External Image URL', help='Used only when no cover image is uploaded')
     category = fields.Selection([
         ('company_news', 'Company News'),
         ('engineering', 'Engineering & Construction'),

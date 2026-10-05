@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import uuid
 import logging
+
+from markupsafe import escape
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 
@@ -120,11 +122,18 @@ class WasmQuoteRequest(models.Model):
             service_name = req.service_id.name if req.service_id else (req.service_name or 'طلب عام / استفسار')
 
             backend_link = f"{base_url}/web#id={req.id}&model=wasm.quote.request&view_type=form"
+            # Values typed by website visitors are HTML-escaped before going into the e-mail
+            # bodies (prevents HTML/link injection in mails sent from the company address).
+            c_name = str(escape(req.customer_name or ''))
+            c_email = str(escape(req.email or ''))
+            c_phone = str(escape(req.phone or ''))
+            c_location = str(escape(req.project_location or ''))
+            service_html = str(escape(service_name or ''))
 
             # 1. Admin / Company Notification Email
             if site_config.enable_email_notifications and site_config.target_notification_email:
                 admin_target_email = site_config.target_notification_email.strip()
-                admin_subject = f"[إشعار طلب جديد {req.name}] - {req.customer_name} ({proj_type_lbl})"
+                admin_subject = f"[إشعار طلب جديد {req.name}] - {(req.customer_name or '')[:80]} ({proj_type_lbl})"
                 
                 admin_body_html = f"""
                 <div style="font-family: 'Tajawal', 'Alexandria', Arial, sans-serif; direction: rtl; text-align: right; background-color: #f8fafc; padding: 25px; color: #1e293b;">
@@ -142,15 +151,15 @@ class WasmQuoteRequest(models.Model):
                             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569; width: 38%;">اسم العميل / الجهة:</td>
-                                    <td style="padding: 10px; font-weight: 800; color: #0f172a;">{req.customer_name} ({cust_type_lbl})</td>
+                                    <td style="padding: 10px; font-weight: 800; color: #0f172a;">{c_name} ({cust_type_lbl})</td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569;">رقم الجوال:</td>
-                                    <td style="padding: 10px; font-weight: 700; color: #0f172a; direction: ltr; text-align: right;"><a href="tel:{req.phone}" style="color: #d97706; text-decoration: none;">{req.phone}</a></td>
+                                    <td style="padding: 10px; font-weight: 700; color: #0f172a; direction: ltr; text-align: right;"><a href="tel:{c_phone}" style="color: #d97706; text-decoration: none;">{c_phone}</a></td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569;">البريد الإلكتروني:</td>
-                                    <td style="padding: 10px; font-weight: 700; color: #0f172a;"><a href="mailto:{req.email}" style="color: #d97706; text-decoration: none;">{req.email}</a></td>
+                                    <td style="padding: 10px; font-weight: 700; color: #0f172a;"><a href="mailto:{c_email}" style="color: #d97706; text-decoration: none;">{c_email}</a></td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569;">نوع المشروع:</td>
@@ -158,11 +167,11 @@ class WasmQuoteRequest(models.Model):
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569;">موقع المشروع:</td>
-                                    <td style="padding: 10px; font-weight: 700; color: #0f172a;">{req.project_location}</td>
+                                    <td style="padding: 10px; font-weight: 700; color: #0f172a;">{c_location}</td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569;">الخدمة المطلوبة:</td>
-                                    <td style="padding: 10px; font-weight: 700; color: #0f172a;">{service_name}</td>
+                                    <td style="padding: 10px; font-weight: 700; color: #0f172a;">{service_html}</td>
                                 </tr>
                                 <tr style="border-bottom: 1px solid #f1f5f9;">
                                     <td style="padding: 10px; font-weight: 700; color: #475569;">القسم المختص:</td>
@@ -179,7 +188,7 @@ class WasmQuoteRequest(models.Model):
                             </table>
                             <div style="background: #f8fafc; border-right: 4px solid #d97706; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
                                 <span style="font-weight: 800; color: #0f172a; display: block; margin-bottom: 6px;">📝 تفاصيل ومتطلبات المشروع:</span>
-                                <p style="margin: 0; color: #334155; line-height: 1.6; white-space: pre-wrap;">{req.details or 'لا توجد تفاصيل إضافية مكتوبة.'}</p>
+                                <p style="margin: 0; color: #334155; line-height: 1.6; white-space: pre-wrap;">{str(escape(req.details)) if req.details else 'لا توجد تفاصيل إضافية مكتوبة.'}</p>
                             </div>
                             <div style="text-align: center; margin-top: 30px;">
                                 <a href="{backend_link}" target="_blank" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #ffffff; font-weight: 800; text-decoration: none; padding: 14px 32px; border-radius: 50px; display: inline-block; box-shadow: 0 4px 15px rgba(217,119,6,0.35);">
@@ -219,7 +228,7 @@ class WasmQuoteRequest(models.Model):
                             <p style="color: #f59e0b; margin: 5px 0 0 0; font-size: 14px; font-weight: 700;">شكراً لتواصلكم معنا</p>
                         </div>
                         <div style="padding: 30px;">
-                            <h3 style="color: #0f172a; font-size: 18px; margin-top: 0;">عزيزنا {req.customer_name}، المحترم</h3>
+                            <h3 style="color: #0f172a; font-size: 18px; margin-top: 0;">عزيزنا {c_name}، المحترم</h3>
                             <p style="color: #475569; line-height: 1.7; font-size: 15px;">
                                 نشكرك على التواصل مع <strong>شركة عرفة للأنظمة المتخصصة</strong>. نود إحاطتكم بأنه تم استلام طلبكم بنجاح وتحويله للقسم المختص للمراجعة ودراسة المتطلبات.
                             </p>
@@ -229,7 +238,7 @@ class WasmQuoteRequest(models.Model):
                                 <span style="font-size: 12px; color: #7c2d12; display: block; margin-top: 6px;">يرجى الاحتفاظ بهذا الرقم لمتابعة حالة الطلب معنا</span>
                             </div>
                             <p style="color: #475569; line-height: 1.7; font-size: 15px;">
-                                سيقوم أحد مهندسينا المختصين بالتواصل معكم عبر الجوال (<strong>{req.phone}</strong>) أو البريد خلال أوقات العمل الرسمية لمتابعة التفاصيل وتزويدكم بعرض السعر المعتمد.
+                                سيقوم أحد مهندسينا المختصين بالتواصل معكم عبر الجوال (<strong>{c_phone}</strong>) أو البريد خلال أوقات العمل الرسمية لمتابعة التفاصيل وتزويدكم بعرض السعر المعتمد.
                             </p>
                             <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; margin-top: 30px;">
                                 <p style="margin: 0; color: #0f172a; font-weight: 800; font-size: 14px;">مع خالص التحية والتقدير،</p>

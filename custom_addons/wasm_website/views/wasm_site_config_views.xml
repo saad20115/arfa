@@ -303,6 +303,50 @@
                             </div>
                         </page>
 
+                        <!-- Tab: Brand, SEO & AI search -->
+                        <page string="محركات البحث والذكاء الاصطناعي (SEO)" name="seo_settings">
+                            <group>
+                                <group string="هوية الشركة">
+                                    <field name="brand_name_ar"/>
+                                    <field name="brand_name_en"/>
+                                    <field name="founding_year"/>
+                                    <field name="service_area" placeholder="مثال: الرياض، جدة، مكة، المنطقة الشرقية"/>
+                                </group>
+                                <group string="وصف الموقع في جوجل ومساعدات الذكاء الاصطناعي">
+                                    <field name="seo_description_ar"/>
+                                    <field name="seo_description_en"/>
+                                </group>
+                            </group>
+                            <div class="alert alert-info shadow-sm rounded-3 mt-3" role="status">
+                                <i class="fa fa-search me-2" title="SEO"/>
+                                <strong>كيف تُستخدم هذه البيانات:</strong> يظهر الوصف في نتائج جوجل لأي صفحة ليس لها وصف خاص،
+                                وتُبنى منه ومن بيانات التواصل والخدمات بطاقة الشركة لمحركات البحث (Schema.org)
+                                وملف <code>/llms.txt</code> الذي تقرؤه مساعدات الذكاء الاصطناعي (ChatGPT، Claude، Perplexity، Gemini).
+                                يمكن أيضاً تخصيص عنوان ووصف كل صفحة من محرر الموقع ← تحسين SEO.
+                            </div>
+                        </page>
+
+                        <!-- Tab: Social media -->
+                        <page string="حسابات التواصل الاجتماعي" name="social_settings">
+                            <group>
+                                <group string="الروابط (تظهر في الفوتر وتُرسل لمحركات البحث)">
+                                    <field name="social_linkedin" widget="url" placeholder="https://www.linkedin.com/company/..."/>
+                                    <field name="social_x" widget="url" placeholder="https://x.com/..."/>
+                                    <field name="social_instagram" widget="url" placeholder="https://www.instagram.com/..."/>
+                                    <field name="social_facebook" widget="url" placeholder="https://www.facebook.com/..."/>
+                                </group>
+                                <group string=" ">
+                                    <field name="social_youtube" widget="url" placeholder="https://www.youtube.com/@..."/>
+                                    <field name="social_tiktok" widget="url" placeholder="https://www.tiktok.com/@..."/>
+                                    <field name="social_snapchat" widget="url" placeholder="https://www.snapchat.com/add/..."/>
+                                </group>
+                            </group>
+                            <div class="alert alert-info shadow-sm rounded-3 mt-3" role="status">
+                                <i class="fa fa-share-alt me-2" title="Social"/>
+                                أي حساب تتركه فارغاً تختفي أيقونته من الفوتر تلقائياً. رابط واتساب يُؤخذ من رقم الجوال في تبويب معلومات التواصل.
+                            </div>
+                        </page>
+
                         <!-- Tab 10: Mail Server & Email Alerts -->
                         <page string="📧 ربط الميل سيرفر وإشعارات النماذج (Email Alerts &amp; Server Integration)" name="email_server_settings">
                             <group>

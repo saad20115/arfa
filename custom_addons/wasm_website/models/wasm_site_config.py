@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
+import re
+
+from markupsafe import Markup
 
 from odoo import api, fields, models
 
@@ -150,6 +154,32 @@ class WasmSiteConfig(models.Model):
         default=True,
         help='إرسال بريد إلكتروني تلقائي للعميل يتضمن الرقم المرجعي المميز وتأكيد استلام الطلب'
     )
+
+    # Brand & search engines (SEO / AI search)
+    brand_name_en = fields.Char(string='Company Name (English)', default='ARFA Construction & Specialized Systems')
+    brand_name_ar = fields.Char(string='Company Name (Arabic)', default='شركة عرفة للأنظمة المتخصصة')
+    founding_year = fields.Char(string='Founded (year)', default='1972')
+    seo_description_en = fields.Text(
+        string='Website Description for Google (English)',
+        default='ARFA Construction & Specialized Systems is a Saudi engineering and construction contractor delivering '
+                'structural works, electromechanical (MEP) systems, smart building automation, fire protection, '
+                'medical gas, alternative energy and infrastructure projects to the Saudi Building Code.',
+        help='Shown by Google and AI assistants when a page has no description of its own (about 150 characters is ideal).')
+    seo_description_ar = fields.Text(
+        string='Website Description for Google (Arabic)',
+        default='شركة عرفة للأنظمة المتخصصة: مقاول هندسي وإنشائي سعودي ينفذ الأعمال الإنشائية والأنظمة الكهروميكانيكية '
+                'والمباني الذكية وأنظمة الحريق والغازات الطبية والطاقة البديلة والبنية التحتية وفق كود البناء السعودي.')
+    service_area = fields.Char(string='Service Area', default='Kingdom of Saudi Arabia',
+                               help='Regions/cities served, e.g. Riyadh, Jeddah, Makkah, Eastern Province')
+
+    # Social media links (footer icons + Google knowledge panel)
+    social_linkedin = fields.Char(string='LinkedIn URL')
+    social_x = fields.Char(string='X (Twitter) URL')
+    social_instagram = fields.Char(string='Instagram URL')
+    social_facebook = fields.Char(string='Facebook URL')
+    social_youtube = fields.Char(string='YouTube URL')
+    social_tiktok = fields.Char(string='TikTok URL')
+    social_snapchat = fields.Char(string='Snapchat URL')
 
     # Pillar Cards (3 Hero Cards)
     pillar1_img = fields.Image(string='Pillar 1 Image', max_width=1200, max_height=800)
@@ -362,3 +392,223 @@ class WasmSiteConfig(models.Model):
         if self.showcase_video_file:
             return '/wasm/video/showcase?unique=%s' % self.wasm_unique()
         return self.showcase_video_url or '/wasm_website/static/src/video/hero_construction.mp4'
+
+    # ------------------------------------------------------------------
+    # SEO / AI search helpers
+    # ------------------------------------------------------------------
+    def wasm_site_description(self, is_en=True):
+        self.ensure_one()
+        return (self.seo_description_en if is_en else self.seo_description_ar) or self.seo_description_en or ''
+
+    # page path -> (English name, Arabic name, English description, Arabic description)
+    _PAGE_META = {
+        '/': ('Saudi Contractor Since 1972', 'مقاولات وأنظمة متخصصة منذ 1972', None, None),
+        '/about': ('About Us', 'عن الشركة',
+                   'ARFA Construction & Specialized Systems: a Saudi contractor since 1972 delivering structural, MEP, smart-building, fire-protection and medical-gas projects across the Kingdom.',
+                   'شركة عرفة للأنظمة المتخصصة: مقاول سعودي منذ عام 1972 ينفذ أعمال الإنشاءات والكهروميكانيك والمباني الذكية والحماية من الحريق والغازات الطبية في أنحاء المملكة.'),
+        '/our-company': ('Our Company', 'شركتنا',
+                         'Company divisions, leadership and certifications of ARFA Construction & Specialized Systems in Saudi Arabia.',
+                         'أقسام شركة عرفة للأنظمة المتخصصة وفريق القيادة والاعتمادات في المملكة العربية السعودية.'),
+        '/services': ('Our Services', 'خدماتنا',
+                      'Planning & construction, MEP, smart building (BMS), modern building systems, fire protection, medical gas, solar energy and infrastructure works by ARFA.',
+                      'التخطيط والإنشاءات، الكهروميكانيك، المباني الذكية، الأنظمة الحديثة، الحماية من الحريق، الغازات الطبية، الطاقة الشمسية والبنية التحتية من شركة عرفة.'),
+        '/projects': ('Our Projects', 'مشاريعنا',
+                      'Completed and ongoing hotel, residential, healthcare and commercial projects delivered by ARFA Construction & Specialized Systems.',
+                      'مشاريع شركة عرفة للأنظمة المتخصصة المنجزة والجارية: فنادق ومبانٍ سكنية وصحية وتجارية.'),
+        '/news': ('News & Media', 'الأخبار والأنشطة',
+                  'Latest news, project milestones and events from ARFA Construction & Specialized Systems.',
+                  'آخر أخبار شركة عرفة للأنظمة المتخصصة ومراحل المشاريع والفعاليات.'),
+        '/quote': ('Request a Quote', 'طلب عرض سعر',
+                   'Request a quotation from ARFA for construction, MEP, fire protection, medical gas or smart building works in Saudi Arabia.',
+                   'اطلب عرض سعر من شركة عرفة لأعمال الإنشاءات أو الكهروميكانيك أو الحماية من الحريق أو الغازات الطبية أو المباني الذكية.'),
+        '/contactus': ('Contact Us', 'اتصل بنا',
+                       'Contact ARFA Construction & Specialized Systems: phone, email, address and the right department for your project.',
+                       'تواصل مع شركة عرفة للأنظمة المتخصصة: الهاتف والبريد والعنوان والقسم المناسب لمشروعك.'),
+        '/contact-team': ('Contact Us', 'اتصل بنا', None, None),
+        '/location': ('Our Location', 'موقعنا',
+                      'Find the ARFA Construction & Specialized Systems office on the map with directions and working hours.',
+                      'موقع مكتب شركة عرفة للأنظمة المتخصصة على الخريطة مع الاتجاهات وساعات العمل.'),
+        '/quote/thanks': ('Request Received', 'تم استلام الطلب', None, None),
+    }
+
+    def wasm_page_meta(self, path, is_en=True, main_object=None, project=None, article=None, service_info=None):
+        """Clean <title> and description for every ARFA page, computed in <head>.
+
+        (Values set with t-set inside a page body are not visible to <head> in Odoo 19,
+        which is why all pages showed "View name | website name" titles.)
+        A title typed by an editor in "Optimize SEO" always wins: no title is returned then.
+        """
+        self.ensure_one()
+        brand = (self.brand_name_en or 'ARFA Construction & Specialized Systems') if is_en \
+            else (self.brand_name_ar or 'شركة عرفة للأنظمة المتخصصة')
+        path = re.sub(r'^/[a-z]{2}(?:_[A-Za-z0-9]{2,4})?(?=/|$)', '', path or '/') or '/'
+        if len(path) > 1:
+            path = path.rstrip('/')
+        name = desc = None
+        # only our own records (other apps may use the same variable names, e.g. project.project)
+        if getattr(project, '_name', None) != 'wasm.project':
+            project = None
+        if getattr(article, '_name', None) != 'wasm.news':
+            article = None
+        if not isinstance(service_info, dict):
+            service_info = None
+        if project:
+            name = project.name
+            bits = [project.name, project.location, project.scope_of_work or project.wasm_type_label(is_en)]
+            desc = project.description or ' — '.join(b for b in bits if b)
+        elif article:
+            name = (article.title_en or article.name) if is_en else (article.name or article.title_en)
+            desc = (article.summary_en or article.summary) if is_en else (article.summary or article.summary_en)
+        elif service_info:
+            name = service_info.get('title_en' if is_en else 'title_ar') or service_info.get('title_en')
+            desc = service_info.get('subtitle_en' if is_en else 'subtitle_ar') or service_info.get('subtitle_en')
+        elif path in self._PAGE_META:
+            en, ar, d_en, d_ar = self._PAGE_META[path]
+            name = en if is_en else ar
+            desc = d_en if is_en else d_ar
+        title = None
+        user_title = hasattr(main_object, '_fields') and 'website_meta_title' in main_object._fields \
+            and main_object.sudo()[:1].website_meta_title
+        if name and not user_title:
+            title = '%s | %s' % (name, brand) if path != '/' else '%s | %s' % (brand, name)
+        desc = ' '.join((desc or self.wasm_site_description(is_en) or '').split())
+        if len(desc) > 300:
+            desc = desc[:297].rsplit(' ', 1)[0] + '…'
+        return {'title': title, 'name': name, 'description': desc}
+
+    @api.model
+    def wasm_patch_social_meta(self, website_meta, title, description, is_en, base_url):
+        """Align Open Graph / Twitter tags with the page <title> and description; absolute image URLs."""
+        if not isinstance(website_meta, dict):
+            return ''
+        base = (base_url or '').rstrip('/')
+        og = website_meta.get('opengraph_meta')
+        tw = website_meta.get('twitter_meta')
+        if isinstance(og, dict):
+            if title:
+                og['og:title'] = title
+            if description:
+                og['og:description'] = description
+            og['og:locale'] = 'en_US' if is_en else 'ar_SA'
+            img = og.get('og:image')
+            if isinstance(img, str) and img.startswith('/'):
+                og['og:image'] = base + img
+        if isinstance(tw, dict):
+            if title:
+                tw['twitter:title'] = title
+            if description:
+                tw['twitter:description'] = description
+            img = tw.get('twitter:image')
+            if isinstance(img, str) and img.startswith('/'):
+                tw['twitter:image'] = base + img
+        return ''
+
+    def wasm_social_links(self):
+        self.ensure_one()
+        pairs = [('linkedin', self.social_linkedin), ('x', self.social_x), ('instagram', self.social_instagram),
+                 ('facebook', self.social_facebook), ('youtube', self.social_youtube), ('tiktok', self.social_tiktok),
+                 ('snapchat', self.social_snapchat)]
+        links = {k: v.strip() for k, v in pairs if v and v.strip().startswith(('http://', 'https://'))}
+        if self.contact_phone_secondary:
+            digits = ''.join(ch for ch in self.contact_phone_secondary if ch.isdigit())
+            if digits:
+                links['whatsapp'] = 'https://wa.me/%s' % digits
+        return links
+
+    @staticmethod
+    def _wasm_json_markup(data):
+        """JSON for <script> tags: safe against '</script>' break-out."""
+        text = json.dumps(data, ensure_ascii=False, separators=(',', ':'))
+        text = text.replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
+        return Markup(text)
+
+    def wasm_social_json(self):
+        self.ensure_one()
+        return self._wasm_json_markup(self.wasm_social_links())
+
+    def wasm_jsonld(self, base_url, page_title=None, page_path=None, is_en=True):
+        """Schema.org graph: Organization/GeneralContractor + WebSite (+ BreadcrumbList on inner pages)."""
+        self.ensure_one()
+        base_url = (base_url or '').rstrip('/')
+        name_en = self.brand_name_en or 'ARFA Construction & Specialized Systems'
+        name_ar = self.brand_name_ar or 'شركة عرفة للأنظمة المتخصصة'
+        services = [self.wasm_t('srv%d_title' % i, is_en) for i in range(1, 9)]
+        org = {
+            '@type': ['GeneralContractor', 'Organization'],
+            '@id': base_url + '/#organization',
+            'name': name_en if is_en else name_ar,
+            'alternateName': [n for n in (name_ar if is_en else name_en, 'ARFA', 'ARFA SPECIALIZED SYSTEMS') if n],
+            'url': base_url + '/',
+            'logo': base_url + '/wasm_website/static/src/img/arfa_logo_stacked.png',
+            'image': base_url + '/wasm_website/static/src/img/arfa_logo_horizontal.png',
+            'description': self.wasm_site_description(is_en),
+            'email': self.contact_email or None,
+            'telephone': self.contact_phone or None,
+            'foundingDate': self.founding_year or None,
+            'areaServed': {'@type': 'Country', 'name': self.service_area or 'Saudi Arabia'},
+            'address': {
+                '@type': 'PostalAddress',
+                'streetAddress': self.wasm_t('contact_address', is_en) or None,
+                'addressCountry': 'SA',
+            },
+            'knowsAbout': [s for s in services if s],
+            'makesOffer': [{'@type': 'Offer', 'itemOffered': {'@type': 'Service', 'name': s}} for s in services if s],
+            'sameAs': [v for k, v in self.wasm_social_links().items() if k != 'whatsapp'] or None,
+        }
+        if self.contact_phone_secondary:
+            org['contactPoint'] = [{
+                '@type': 'ContactPoint', 'contactType': 'sales', 'telephone': self.contact_phone_secondary,
+                'email': self.contact_email or None, 'areaServed': 'SA', 'availableLanguage': ['ar', 'en'],
+            }]
+        graph = [
+            {k: v for k, v in org.items() if v not in (None, '', [], {})},
+            {
+                '@type': 'WebSite', '@id': base_url + '/#website', 'url': base_url + '/',
+                'name': name_en if is_en else name_ar, 'inLanguage': 'en' if is_en else 'ar',
+                'publisher': {'@id': base_url + '/#organization'},
+            },
+        ]
+        if page_path and page_path not in ('/', '') and page_title:
+            graph.append({
+                '@type': 'BreadcrumbList',
+                'itemListElement': [
+                    {'@type': 'ListItem', 'position': 1, 'name': 'Home' if is_en else 'الرئيسية', 'item': base_url + '/'},
+                    {'@type': 'ListItem', 'position': 2, 'name': page_title, 'item': base_url + page_path},
+                ],
+            })
+        return self._wasm_json_markup({'@context': 'https://schema.org', '@graph': graph})
+
+    def wasm_llms_text(self, base_url):
+        """/llms.txt — a plain Markdown brief that AI assistants and AI search engines can quote."""
+        self.ensure_one()
+        env = self.env
+        base_url = (base_url or '').rstrip('/')
+        name = self.brand_name_en or 'ARFA Construction & Specialized Systems'
+        out = ['# %s (%s)' % (name, self.brand_name_ar or ''), '',
+               '> %s' % (self.seo_description_en or ''), '']
+        facts = [('Founded', self.founding_year), ('Service area', self.service_area),
+                 ('Completed projects', self.stat1_val), ('Years of experience', self.stat2_val),
+                 ('Executed area (m²)', self.stat3_val), ('Engineers & specialists', self.stat4_val),
+                 ('Phone', self.contact_phone), ('Mobile / WhatsApp', self.contact_phone_secondary),
+                 ('E-mail', self.contact_email), ('Address', self.contact_address_en),
+                 ('Working hours', self.contact_working_hours_en)]
+        out += ['## Key facts', ''] + ['- %s: %s' % (k, v) for k, v in facts if v] + ['']
+        out += ['## Services', '']
+        for i in range(1, 9):
+            title = self['srv%d_title_en' % i]
+            if title:
+                url = self['srv%d_url' % i] or '/services'
+                out.append('- [%s](%s%s): %s' % (title, base_url, url, self['srv%d_desc_en' % i] or ''))
+        out += ['', '## Projects', '']
+        for project in env['wasm.project'].sudo().search([('active', '=', True)], limit=50):
+            bits = [b for b in (project.location, project.client_name, project.scope_of_work) if b]
+            out.append('- [%s](%s/projects/%s)%s' % (project.name, base_url, project.id, (': ' + ' · '.join(bits)) if bits else ''))
+        out += ['', '## Main pages', '',
+                '- [About](%s/about)' % base_url, '- [Services](%s/services)' % base_url,
+                '- [Projects](%s/projects)' % base_url, '- [News](%s/news)' % base_url,
+                '- [Request a quote](%s/quote)' % base_url, '- [Contact](%s/contactus)' % base_url,
+                '- [Company profile (PDF)](%s/company-profile)' % base_url, '']
+        social = self.wasm_social_links()
+        if social:
+            out += ['## Official channels', ''] + ['- %s: %s' % (k.capitalize(), v) for k, v in social.items()] + ['']
+        return '\n'.join(out)
