@@ -3071,32 +3071,32 @@ html.arfa-anim .wasm-section-title.arfa-reveal.is-in::after { transform: scaleX(
 }
 .wasm-fluid-hero-content { position: relative; z-index: 5; max-width: 880px; margin: 0 auto; }
 
-/* Gold swoosh divider, drawn from the sweep in the ARFA logo: a tapered gold blade
-   that starts thick on the left, dips, then rises to a fine point on the right,
-   with two thinner echo lines. The SVGs (static/src/img/arfa_swoosh_*.svg, made by
-   tools/gen_swoosh.py) animate themselves: the blades undulate and a light runs along
-   the main blade. Drawn on the hero itself so it works on every page that has one. */
+/* Hero wave: the original curve (low on the left, rising to the right like the sweep
+   in the logo), now in the logo gold with travelling ripples: two solid gold bands
+   that run straight into the next section. The SVGs (static/src/img/arfa_swoosh_*.svg,
+   made by tools/gen_swoosh.py) animate themselves. Drawn on the hero itself so it
+   works on every page that has one. */
 .wasm-liquid-wave-1, .wasm-liquid-wave-2, .arfa-waves { display: none !important; }
 #wrapwrap .arfa-pd > .arfa-pd-hero { position: relative; overflow: hidden; }
 #wrapwrap .arfa-pd > .arfa-pd-hero > * { position: relative; z-index: 2; }
 #wrapwrap .wasm-fluid-hero-section::after,
 #wrapwrap .arfa-pd > .arfa-pd-hero::after {
-    content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 170px;
+    content: ''; position: absolute; left: 0; right: 0; bottom: -2px; height: 210px;
     z-index: 1; pointer-events: none;
-    background: url("/wasm_website/static/src/img/arfa_swoosh_light.svg") center bottom / 100% 100% no-repeat;
+    background: url("/wasm_website/static/src/img/arfa_swoosh_light.svg?v=3") center bottom / 100% 100% no-repeat;
 }
 #wrapwrap .arfa-pd > .arfa-pd-hero::after {
-    height: 140px;
-    background-image: url("/wasm_website/static/src/img/arfa_swoosh_white.svg");
+    height: 170px;
+    background-image: url("/wasm_website/static/src/img/arfa_swoosh_white.svg?v=3");
 }
 @media (max-width: 991.98px) {
     #wrapwrap .wasm-fluid-hero-section { padding: 80px 0 130px !important; }
-    #wrapwrap .wasm-fluid-hero-section::after { height: 100px; }
-    #wrapwrap .arfa-pd > .arfa-pd-hero::after { height: 90px; }
+    #wrapwrap .wasm-fluid-hero-section::after { height: 115px; }
+    #wrapwrap .arfa-pd > .arfa-pd-hero::after { height: 100px; }
 }
 @media (prefers-reduced-motion: reduce) {
-    #wrapwrap .wasm-fluid-hero-section::after { background-image: url("/wasm_website/static/src/img/arfa_swoosh_light_static.svg"); }
-    #wrapwrap .arfa-pd > .arfa-pd-hero::after { background-image: url("/wasm_website/static/src/img/arfa_swoosh_white_static.svg"); }
+    #wrapwrap .wasm-fluid-hero-section::after { background-image: url("/wasm_website/static/src/img/arfa_swoosh_light_static.svg?v=3"); }
+    #wrapwrap .arfa-pd > .arfa-pd-hero::after { background-image: url("/wasm_website/static/src/img/arfa_swoosh_white_static.svg?v=3"); }
 }
 
 /* anti-spam honeypot: off-screen for people, still in the form for bots */
