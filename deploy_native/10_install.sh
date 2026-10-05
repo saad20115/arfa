@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# 10_install.sh - install the NEW ARFA website as an isolated service next to the existing Odoo apps.
+# تثبيت موقع عرفة الجديد كخدمة مستقلة بجانب تطبيقات أودو الحالية (بدون Docker وبدون لمس التطبيقات الأخرى).
+#
+#   sudo ./10_install.sh --dump /opt/arfa_backups/initial/arfa2026.dump --filestore /opt/arfa_backups/initial/filestore
+# options:  --no-auth   trial link without password      --force   replace an existing arfa_prod database
+#           --skip-images  do not import the externally hosted team/partner images      -y  no questions
+. "$(dirname "$0")/lib.sh"
+DUMP=""; FILESTORE=""; NO_AUTH=0; FORCE=0; SKIP_IMAGES=0
+while [ $# -gt 0 ]; do case "$1" in
+  --dump) DUMP="$2"; shift 2;; --filestore) FILESTORE="$2"; shift 2;;
+  --no-auth) NO_AUTH=1; shift;; --force) FORCE=1; shift;; --skip-images) SKIP_IMAGES=1; shift;;
+  -y|--yes) ASSUME_YES=1; shift;; *) die "unknown option $1" "خيار غير معروف";; esac; done
+need_root
+[ -f "$DUMP" ] || die "--dump file not found: $DUMP" "ملف قاعدة البيانات غير موجود"
+[ -d "$FILESTORE" ] || die "--filestore folder not found: $FILESTORE" "مجلد الملفات غير موجود"
+
+step "1/10 Preflight" "الفحص المسبق"
+"$KIT_DIR/00_check.sh" || die "preflight failed - fix the FAIL lines first" "الفحص فشل"
+if db_exists; then
+  [ "$FORCE" = 1 ] || die "database $DB_NAME exists - use --force to replace it (a backup is taken first)" "القاعدة موجودة"
+  confirm "Replace database $DB_NAME ?" || die "aborted" "تم الإلغاء"
+  "$KIT_DIR/20_backup.sh" || die "safety backup failed" "فشل النسخ الاحتياطي"
+fi
+
+step "2/10 System packages (only what Odoo needs)" "حزم النظام"
+export DEBIAN_FRONTEND=noninteractive
+PKGS="python3-venv python3-dev build-essential libpq-dev libxml2-dev libxslt1-dev libldap2-dev libsasl2-dev libjpeg-dev zlib1g-dev libffi-dev libssl-dev"
+missing=$(for p in $PKGS; do dpkg -s "$p" >/dev/null 2>&1 || echo "$p"; done | tr '\n' ' ')
+if [ -n "${missing// }" ]; then apt-get update -qq && apt-get install -y -qq $missing; ok "installed: $missing" "تم تثبيت الحزم"; else ok "all present" "كل الحزم موجودة"; fi
+
+step "3/10 Linux user + folders" "المستخدم والمجلدات"
+id "$ARFA_USER" >/dev/null 2>&1 || useradd --system --home-dir "$DATA_DIR" --shell /usr/sbin/nologin "$ARFA_USER"
+install -d -o "$ARFA_USER" -g "$ARFA_USER" -m 750 "$DATA_DIR" "$LOG_DIR" "$DATA_DIR/filestore"
+install -d -o root -g "$ARFA_USER" -m 750 "$CONF_DIR"
+install -d -o root -g root -m 755 "$ARFA_RUNTIME"
+install -d -o root -g root -m 700 "$BACKUP_DIR"
+ok "user $ARFA_USER, $DATA_DIR, $LOG_DIR, $CONF_DIR" "تم"
+
+step "4/10 Odoo 19 source + Python venv (own copy, ~5 min)" "نسخة أودو 19 الخاصة"
+if [ ! -d "$ARFA_RUNTIME/odoo/.git" ]; then git clone -q --depth 1 -b "$ODOO_BRANCH" "$ODOO_GIT" "$ARFA_RUNTIME/odoo"; fi
+ok "odoo $(git -C "$ARFA_RUNTIME/odoo" log -1 --format='%h %cd' --date=short)" "المصدر جاهز"
+[ -x "$PYTHON" ] || python3 -m venv "$ARFA_RUNTIME/venv"
+"$ARFA_RUNTIME/venv/bin/pip" install -q --upgrade pip wheel setuptools
+grep -viE '^(python-ldap)' "$ARFA_RUNTIME/odoo/requirements.txt" > "$ARFA_RUNTIME/requirements.arfa.txt"
+"$ARFA_RUNTIME/venv/bin/pip" install -q -r "$ARFA_RUNTIME/requirements.arfa.txt"
+"$PYTHON" -c "import psycopg2, lxml, PIL, werkzeug" || die "python dependencies incomplete" "مكتبات بايثون ناقصة"
+ok "venv ready: $("$PYTHON" --version)" "البيئة جاهزة"
+chmod -R a+rX "$ARFA_REPO/custom_addons"
+
+step "5/10 Database (own role + database, existing ones untouched)" "قاعدة البيانات"
+role_exists || psql_su -qc "CREATE ROLE \"$ARFA_USER\" LOGIN NOSUPERUSER NOCREATEROLE NOCREATEDB"
+db_exists && psql_su -qc "DROP DATABASE \"$DB_NAME\""
+psql_su -qc "CREATE DATABASE \"$DB_NAME\" OWNER \"$ARFA_USER\" ENCODING 'UTF8' TEMPLATE template0"
+cp "$DUMP" /tmp/arfa_restore.dump && chmod 644 /tmp/arfa_restore.dump
+set +e; as_pg pg_restore -d "$DB_NAME" --no-owner --no-privileges --role="$ARFA_USER" -j 2 /tmp/arfa_restore.dump 2>/tmp/arfa_restore.err; rc=$?; set -e
+rm -f /tmp/arfa_restore.dump
+[ "$rc" -le 1 ] || { cat /tmp/arfa_restore.err; die "pg_restore failed" "فشل استرجاع القاعدة"; }
+n=$(psql_db -Atc "select count(*) from ir_module_module where state='installed'")
+[ "${n:-0}" -gt 10 ] || die "restored database looks empty" "القاعدة المسترجعة فارغة"
+psql_db -qc "ALTER SCHEMA public OWNER TO \"$ARFA_USER\""
+ok "restored: $n modules installed" "تم الاسترجاع"
+
+step "6/10 Website files (filestore)" "ملفات الموقع"
+rm -rf "$DATA_DIR/filestore/$DB_NAME"
+cp -a "$FILESTORE" "$DATA_DIR/filestore/$DB_NAME"
+chown -R "$ARFA_USER:$ARFA_USER" "$DATA_DIR"
+ok "$(find "$DATA_DIR/filestore/$DB_NAME" -type f | wc -l) files" "تم نسخ الملفات"
+
+step "7/10 Configuration" "الإعدادات"
+if [ ! -f "$SECRETS" ]; then
+  umask 077
+  { echo "ADMIN_PASSWD=$(openssl rand -base64 30 | tr -d '/+=' | cut -c1-32)"
+    echo "TRIAL_PASSWORD=$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-14)"; } > "$SECRETS"
+  umask 022
+fi
+. "$SECRETS"
+cat > "$ODOO_CONF" <<CONF
+[options]
+; ARFA new website - generated by deploy_native/10_install.sh
+addons_path = $ARFA_RUNTIME/odoo/addons,$ARFA_REPO/custom_addons
+data_dir = $DATA_DIR
+db_host = ${PGHOST_OVERRIDE:-False}
+db_port = ${PGPORT_OVERRIDE:-False}
+db_user = $ARFA_USER
+db_name = $DB_NAME
+dbfilter = ^$DB_NAME\$
+list_db = False
+admin_passwd = $ADMIN_PASSWD
+http_interface = 127.0.0.1
+http_port = $HTTP_PORT
+gevent_port = $CHAT_PORT
+proxy_mode = True
+workers = $WORKERS
+max_cron_threads = 1
+db_maxconn = 32
+limit_memory_soft = 2147483648
+limit_memory_hard = 2684354560
+limit_time_cpu = 600
+limit_time_real = 1200
+limit_request = 8192
+without_demo = True
+logfile = $LOG_DIR/arfa.log
+log_level = warn
+CONF
+chown root:"$ARFA_USER" "$ODOO_CONF" "$SECRETS"; chmod 640 "$ODOO_CONF" "$SECRETS"
+ok "$ODOO_CONF" "تم إنشاء ملف الإعدادات"
+
+step "8/10 Update the website module (security fixes, texts, images)" "تحديث موديول الموقع"
+odoo_run -d "$DB_NAME" -u wasm_website,wasm_debrand --stop-after-init --no-http --logfile=/dev/stdout --log-level=warn 2>&1 | grep -vE "must have title|View error context|^\{|^ '|Missing not-null|create the logfile" | tail -20
+v=$(psql_db -Atc "select latest_version from ir_module_module where name='wasm_website'")
+ok "wasm_website $v" "تم التحديث"
+IP=$(server_ip); BASE="http://${IP:-SERVER_IP}:$TRIAL_PORT"
+psql_db -q <<SQL
+INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)
+VALUES ('web.base.url', '$BASE', 1, 1, now(), now()), ('web.base.url.freeze', 'True', 1, 1, now(), now()),
+       ('wasm_website.hide_from_search_engines', 'True', 1, 1, now(), now())
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, write_date = now();
+DELETE FROM ir_attachment WHERE url LIKE '/sitemap%.xml';
+UPDATE mail_mail SET state = 'cancel' WHERE state IN ('outgoing', 'exception');
+SQL
+ok "base URL $BASE, hidden from search engines, old test e-mails cancelled" "تم ضبط الرابط وإخفاء الموقع عن محركات البحث"
+if [ "$SKIP_IMAGES" = 0 ]; then
+  odoo_shell -d "$DB_NAME" --no-http --log-level=error < "$KIT_DIR/templates/import_images.py" 2>&1 | grep -E "IMPORT" || true
+fi
+
+step "9/10 Service" "الخدمة"
+cat > "$UNIT" <<UNITF
+[Unit]
+Description=ARFA new website (Odoo 19) - $DB_NAME
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=$ARFA_USER
+Group=$ARFA_USER
+ExecStart=$PYTHON $ODOO_BIN -c $ODOO_CONF
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+UNITF
+if [ "${ARFA_TEST_NO_SYSTEMD:-0}" = 1 ]; then   # test harness only (containers without systemd)
+  sudo -u "$ARFA_USER" setsid "$PYTHON" "$ODOO_BIN" -c "$ODOO_CONF" </dev/null >/dev/null 2>&1 &
+else
+  systemctl daemon-reload
+  systemctl enable -q --now "$SERVICE"
+fi
+for i in $(seq 1 40); do curl -s -o /dev/null -m 3 "http://127.0.0.1:$HTTP_PORT/web/login" && break; sleep 2; done
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 10 "http://127.0.0.1:$HTTP_PORT/")
+[ "$code" = 200 ] && ok "service $SERVICE running (HTTP $code)" "الخدمة تعمل" || die "service not answering (HTTP $code) - see: journalctl -u $SERVICE -n 50 ; tail $LOG_DIR/arfa.log" "الخدمة لا تستجيب"
+
+step "10/10 Trial link (nginx, port $TRIAL_PORT)" "رابط التجربة"
+if [ "$NO_AUTH" = 1 ]; then AUTH="auth_basic off;"; else
+  printf '%s:%s\n' "$TRIAL_USER" "$(openssl passwd -apr1 "$TRIAL_PASSWORD")" > "$HTPASSWD"
+  chown root:www-data "$HTPASSWD"; chmod 640 "$HTPASSWD"
+  AUTH="auth_basic \"ARFA preview\"; auth_basic_user_file $HTPASSWD;"; fi
+sed -e "s#__HTTP_PORT__#$HTTP_PORT#g; s#__CHAT_PORT__#$CHAT_PORT#g; s#__TRIAL_PORT__#$TRIAL_PORT#g; s#__AUTH__#$AUTH#" \
+    "$KIT_DIR/templates/nginx_trial.conf.tpl" > "$NGINX_SITE"
+ln -sf "$NGINX_SITE" "$NGINX_LINK"
+if nginx -t 2>/tmp/arfa_nginx_t; then if [ "${ARFA_TEST_NO_SYSTEMD:-0}" = 1 ]; then nginx -s reload 2>/dev/null || nginx; else systemctl reload nginx; fi; ok "nginx reloaded (other sites unchanged)" "تم تفعيل الرابط"
+else rm -f "$NGINX_LINK"; cat /tmp/arfa_nginx_t; die "nginx test failed - our file was disabled again, other sites unaffected" "خطأ في nginx - تم التراجع"; fi
+sleep 1
+curl_auth=(); [ "$NO_AUTH" = 1 ] || curl_auth=(-u "$TRIAL_USER:$TRIAL_PASSWORD")
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 "${curl_auth[@]}" "http://127.0.0.1:$TRIAL_PORT/")
+[ "$code" = 200 ] && ok "trial link answers (HTTP $code)" "الرابط يعمل" || warn "trial link returned HTTP $code" "تحقق من الرابط"
+command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active" && ufw allow "$TRIAL_PORT/tcp" >/dev/null && ok "firewall: port $TRIAL_PORT allowed" "تم فتح المنفذ"
+
+printf '\n%s================ DONE | تم ================%s\n' "$c_ok" "$c_off"
+echo "Trial link | رابط التجربة للعميل : $BASE"
+[ "$NO_AUTH" = 1 ] || echo "User / password | المستخدم وكلمة المرور : $TRIAL_USER / $TRIAL_PASSWORD"
+echo "Backend login | لوحة التحكم         : $BASE/web/login  (same Odoo users as on your PC)"
+echo "Secrets saved in | الأسرار محفوظة في : $SECRETS"
+echo "Logs | السجلات : journalctl -u $SERVICE -f   |   $LOG_DIR/arfa.log"
