@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         OFFICIAL HOMEPAGE OVERRIDE (website.homepage)
+         Full WASM Design + Dropzone Support
+         ============================================================ -->
+    <template id="wasm_homepage_override" inherit_id="website.homepage" name="Wasm Homepage Layout" priority="1">
+        <xpath expr="//div[@id='wrap']" position="replace">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <!-- is_en only drives layout (arrow direction); all texts come from site_config.tx() -->
+            <t t-set="is_en" t-value="site_config.is_en()"/>
+            <t t-set="title" t-value="site_config.tx('home.page_title')"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_home_top"/>
+
+                <!-- Hero Video Banner -->
+                <section class="wasm-hero-banner">
+                    <div class="wasm-hero-video-wrapper">
+                        <!-- Default video (static/src/video/hero_construction*.mp4) and default poster
+                             (static/src/img/hero_bg.jpg) already carry the colour grading of the CSS filter,
+                             so the costly per-frame filter is skipped for them (modifier class "baked"). A smaller
+                             480p file is served to phones, only for the default video. -->
+                        <t t-set="hero_video_src" t-value="site_config.wasm_hero_video_url()"/>
+                        <t t-set="hero_video_default" t-value="hero_video_src == '/wasm_website/static/src/video/hero_construction.mp4'"/>
+                        <t t-set="hero_poster" t-value="site_config.hero_bg_image and site_config.wasm_img_url('hero_bg_image') or '/wasm_website/static/src/img/hero_bg.jpg'"/>
+                        <video autoplay="autoplay" loop="loop" muted="muted" playsinline="playsinline" preload="metadata" t-att-poster="hero_poster"
+                               t-attf-class="wasm-hero-bg-video#{' wasm-hero-bg-video--baked' if hero_video_default and not site_config.hero_bg_image else ''}"
+                               aria-hidden="true" tabindex="-1" disablepictureinpicture="disablepictureinpicture">
+                            <source t-if="hero_video_default" src="/wasm_website/static/src/video/hero_construction_480.mp4" type="video/mp4" media="(max-width: 767px)"/>
+                            <source t-att-src="hero_video_src" type="video/mp4"/>
+                        </video>
+                        <div class="wasm-hero-overlay"></div>
+                    </div>
+                    <div class="container wasm-hero-content py-5">
+                        <div class="row align-items-center g-5">
+                            <!-- Text Block (Right Side in RTL) -->
+                            <div class="col-lg-8 text-center text-lg-start wasm-hero-text-block">
+                                <h1 class="display-4 fw-bold mb-3 wasm-hero-title wasm-anim-item wasm-anim-delay-2">
+                                    <span class="wasm-hero-title-main" t-out="site_config.tx('home.hero.title')"/>
+                                    <span class="wasm-hero-subtitle" t-out="site_config.wasm_t('hero_title')"/>
+                                </h1>
+                                <t t-set="hero_lead" t-value="site_config.tx('home.hero.lead')"/>
+                                <p class="lead fs-5 mb-0 wasm-hero-lead wasm-typewriter-target" t-att-data-typewriter-text="hero_lead">
+                                    <span class="wasm-typewriter-content" t-out="hero_lead"/><span class="wasm-typewriter-cursor">|</span>
+                                </p>
+                            </div>
+
+                            <!-- Vertical Action Buttons Column (Left Side in RTL) -->
+                            <div class="col-lg-4 text-center text-lg-end wasm-hero-action-block">
+                                <div class="d-flex flex-column gap-3 mx-auto ms-lg-auto wasm-hero-btn-wrapper">
+                                    <a href="/quote" class="btn wasm-hero-btn wasm-hero-btn-1 wasm-anim-item wasm-anim-delay-4">
+                                        <svg class="wasm-btn-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+                                            <line x1="8" y1="6" x2="16" y2="6"></line>
+                                            <line x1="16" y1="14" x2="16" y2="18"></line>
+                                            <path d="M16 10h.01"></path>
+                                            <path d="M12 10h.01"></path>
+                                            <path d="M8 10h.01"></path>
+                                            <path d="M12 14h.01"></path>
+                                            <path d="M8 14h.01"></path>
+                                            <path d="M12 18h.01"></path>
+                                            <path d="M8 18h.01"></path>
+                                        </svg>
+                                        <span t-out="site_config.tx('home.hero.btn_quote')"/>
+                                    </a>
+                                    <a href="/company-profile" target="_blank" rel="noopener" class="btn wasm-hero-btn wasm-hero-btn-2 wasm-anim-item wasm-anim-delay-5">
+                                        <svg class="wasm-btn-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                                            <polyline points="10 9 9 9 8 9"></polyline>
+                                        </svg>
+                                        <span t-out="site_config.tx('home.hero.btn_profile')"/>
+                                    </a>
+                                    <a href="/contact-team" class="btn wasm-hero-btn wasm-hero-btn-3 wasm-anim-item wasm-anim-delay-6">
+                                        <svg class="wasm-btn-svg-icon me-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                        </svg>
+                                        <span t-out="site_config.tx('home.hero.btn_contact')"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Feature Pillar Cards Inside Hero Video Canvas (wasm.content.item, section "pillar") -->
+                    <t t-set="pillars" t-value="site_config.items('pillar')"/>
+                    <div class="container wasm-hero-pillars-section pt-3 pb-4" t-if="pillars">
+                        <div class="row g-4">
+                            <t t-foreach="pillars" t-as="item">
+                                <div class="col-md-4">
+                                    <div class="wasm-pillar-card h-100 shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+                                        <div class="wasm-pillar-img-wrapper overflow-hidden" style="height: 200px; position: relative;" t-if="item.img_url()">
+                                            <img t-att-src="item.img_url()" loading="lazy" decoding="async" width="900" height="600" t-att-alt="item.t('title')" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                        </div>
+                                        <div class="p-4">
+                                            <h2 class="h4 fw-bold mb-2 text-dark" t-out="item.t('title')"/>
+                                            <p class="text-muted small mb-3" t-out="item.t('desc')"/>
+                                            <a t-if="item.link_url" t-att-href="item.link_url" class="wasm-pillar-link fw-bold text-warning text-decoration-none"><span t-out="item.t('link_label')"/> <i class="fa fa-arrow-left ms-1"></i></a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="oe_structure" id="oe_structure_home_middle_1"/>
+
+                <!-- Stats (wasm.content.item, section "stat") -->
+                <t t-set="stat_items" t-value="site_config.items('stat')"/>
+                <section class="wasm-home-stats-section bg-white" t-if="stat_items">
+                    <div class="container">
+                        <div class="row g-4">
+                            <t t-foreach="stat_items" t-as="item">
+                                <div class="col-md-3 col-6"><div class="wasm-stat-box"><div class="wasm-stat-number" t-out="item.value"/><div class="text-muted fw-bold mt-1" t-out="item.t('title')"/></div></div>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="oe_structure" id="oe_structure_home_middle_2"/>
+
+                <!-- Corporate Video Showcase -->
+                <section class="py-5 bg-white position-relative" t-att-style="site_config.showcase_bg_image and ('background: url(%s) center/cover no-repeat !important;' % site_config.wasm_img_url('showcase_bg_image')) or None">
+                    <div class="container">
+                        <div class="row align-items-center g-5">
+                            <div class="col-lg-6">
+                                <h2 class="wasm-section-title text-start mb-4" t-out="site_config.wasm_t('showcase_title')"/>
+                                <p class="fs-5 text-muted lh-lg mb-3" t-out="site_config.wasm_t('showcase_desc')"/>
+
+                                <ul class="list-unstyled mb-4 text-dark fs-6 fw-bold">
+                                    <li class="mb-2" t-if="site_config.wasm_t('showcase_bullet1')"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config.wasm_t('showcase_bullet1')"/></li>
+                                    <li class="mb-2" t-if="site_config.wasm_t('showcase_bullet2')"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config.wasm_t('showcase_bullet2')"/></li>
+                                    <li class="mb-2" t-if="site_config.wasm_t('showcase_bullet3')"><i class="fa fa-check-circle text-success me-2"></i> <span t-out="site_config.wasm_t('showcase_bullet3')"/></li>
+                                </ul>
+
+                                <div class="d-flex flex-wrap gap-3">
+                                    <a href="/quote" class="btn btn-warning btn-lg rounded-pill fw-bold text-white shadow"><i class="fa fa-calculator me-2"></i><span t-out="site_config.tx('home.showcase.btn_quote')"/></a>
+                                    <a href="/about" class="btn btn-outline-dark btn-lg rounded-pill fw-bold"><span t-out="site_config.tx('home.showcase.btn_more_about')"/></a>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="wasm-video-card">
+                                    <div class="wasm-video-wrapper position-relative overflow-hidden rounded-4 shadow-lg">
+                                        <!-- lazy: no download until the visitor scrolls near it (wasm_video_player.js starts it muted) -->
+                                        <video id="wasm_showcase_video" muted="muted" loop="loop" playsinline="playsinline" t-att-poster="site_config.wasm_img_url('showcase_poster') or None" preload="none" style="width:100%; height:100%; object-fit:cover; display:block; cursor:pointer;">
+                                            <source t-att-src="site_config.wasm_video_url()" type="video/mp4"/>
+                                            <t t-out="site_config.tx('home.showcase.video_fallback')"/>
+                                        </video>
+                                        <!-- Floating Gold Glassmorphic Play Button -->
+                                        <button id="wasm_video_play_btn" type="button" class="wasm-video-play-btn" t-att-aria-label="site_config.tx('home.showcase.play_label')">
+                                            <span class="wasm-play-pulse"></span>
+                                            <span class="wasm-play-pulse-outer"></span>
+                                            <div class="wasm-play-glass-icon">
+                                                <i class="fa fa-play play-icon"></i>
+                                                <i class="fa fa-pause pause-icon d-none"></i>
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Why Choose Us Section (wasm.content.item, section "why") -->
+                <t t-set="why_items" t-value="site_config.items('why')"/>
+                <section class="py-5 bg-white">
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h2 class="wasm-section-title mb-3" t-out="site_config.tx('home.why.title')"/>
+                            <p class="text-muted fs-5" t-out="site_config.tx('home.why.subtitle')"/>
+                        </div>
+                        <div class="wasm-auto-slider" data-auto-interval="2000" data-direction="left" t-if="why_items">
+                            <div class="wasm-slider-track">
+                                <t t-foreach="why_items" t-as="item">
+                                    <div class="wasm-slider-item">
+                                        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
+                                            <div class="overflow-hidden" style="height: 160px;" t-if="item.img_url()">
+                                                <img t-att-src="item.img_url()" loading="lazy" decoding="async" width="800" height="533" t-att-alt="item.t('title')" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            </div>
+                                            <div class="p-4 text-center">
+                                                <h3 class="h5 fw-bold mb-2 text-dark" t-out="item.t('title')"/>
+                                                <p class="text-muted small mb-0" t-out="item.t('desc')"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Services Section (wasm.service records flagged "show on home") -->
+                <t t-set="home_services" t-value="site_config.home_services()"/>
+                <section class="py-5 bg-white" t-if="home_services">
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h2 class="wasm-section-title mb-3" t-out="site_config.tx('home.services.title')"/>
+                            <p class="text-muted fs-5" t-out="site_config.tx('home.services.subtitle')"/>
+                        </div>
+                        <div class="wasm-auto-slider" data-auto-interval="2000" data-direction="right">
+                            <div class="wasm-slider-track">
+                                <t t-foreach="home_services" t-as="srv">
+                                    <div class="wasm-slider-item">
+                                        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card">
+                                            <a t-att-href="srv.website_url" class="text-decoration-none">
+                                                <div class="overflow-hidden" style="height: 170px;">
+                                                    <img t-att-src="srv.wasm_image_url()" loading="lazy" decoding="async" width="600" height="400" t-att-alt="srv.name" class="img-fluid w-100 h-100 wasm-pillar-img" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                                </div>
+                                            </a>
+                                            <div class="p-4 text-center d-flex flex-column h-100">
+                                                <a t-att-href="srv.website_url" class="text-decoration-none">
+                                                    <h3 class="h5 fw-bold mb-2 text-dark" t-out="srv.name"/>
+                                                </a>
+                                                <p class="text-muted small mb-3" t-out="srv.wasm_card_description()"/>
+                                                <div class="mt-auto d-flex justify-content-center gap-2">
+                                                    <a t-att-href="srv.website_url" class="btn btn-outline-warning rounded-pill fw-bold btn-sm px-3" t-out="site_config.tx('home.services.btn_details')"/>
+                                                    <a t-attf-href="/quote?service_id=#{srv.id}" class="btn btn-warning rounded-pill fw-bold btn-sm px-3" t-out="site_config.tx('home.services.btn_request')"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Projects (Light Theme Harmonized) -->
+                <section class="py-5 bg-white">
+                    <div class="container">
+                        <div class="d-flex justify-content-between align-items-end mb-5 flex-wrap gap-3">
+                            <div>
+                                <h2 class="wasm-section-title text-start mb-2" t-out="site_config.tx('home.projects.title')"/>
+                                <p class="text-muted fs-5 mb-0" t-out="site_config.tx('home.projects.subtitle')"/>
+                            </div>
+                            <a href="/projects" class="btn btn-outline-warning rounded-pill px-4 fw-bold">
+                                <span t-out="site_config.tx('home.projects.btn_all')"/> 
+                                <i t-attf-class="fa #{is_en and 'fa-arrow-right ms-1' or 'fa-arrow-left ms-1'}"/>
+                            </a>
+                        </div>
+                        <div class="row g-4">
+                            <t t-foreach="projects" t-as="proj">
+                                <div class="col-md-4">
+                                    <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-sm wasm-hover-card bg-white">
+                                        <a t-attf-href="/projects/#{proj.id}" class="text-decoration-none">
+                                            <div class="wasm-project-placeholder position-relative overflow-hidden" style="height:220px;">
+                                                <img t-att-src="proj.wasm_main_image_url()" t-att-alt="proj.name" loading="lazy" decoding="async" width="600" height="400" class="w-100 h-100" style="object-fit:cover;"/>
+                                                <span class="position-absolute top-0 end-0 m-3 badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                                                    <t t-out="site_config.tx('home.projects.state_completed') if proj.state == 'completed' else site_config.tx('home.projects.state_in_progress')"/>
+                                                </span>
+                                            </div>
+                                        </a>
+                                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                                            <div>
+                                                <a t-attf-href="/projects/#{proj.id}" class="text-decoration-none">
+                                                    <h3 class="h5 fw-bold mb-2 text-dark" t-out="proj.name"/>
+                                                </a>
+                                                <p class="text-muted small mb-3" t-out="proj.description"/>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center small border-top pt-3 mt-3">
+                                                <span class="text-warning fw-bold"><i class="fa fa-map-marker me-1"/> <span t-out="proj.location"/></span>
+                                                <a t-attf-href="/projects/#{proj.id}" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-bold">
+                                                    <span t-out="site_config.tx('home.projects.btn_details')"/>
+                                                    <i t-attf-class="fa #{is_en and 'fa-arrow-right ms-1' or 'fa-arrow-left ms-1'}"/>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                        <!-- Bottom Link to Full Projects Page -->
+                        <div class="text-center mt-5">
+                            <a href="/projects" class="btn btn-warning rounded-pill px-5 py-3 fw-bold shadow-sm text-dark">
+                                <span t-out="site_config.tx('home.projects.btn_all_page')"/> 
+                                <i t-attf-class="fa #{is_en and 'fa-arrow-right ms-2' or 'fa-arrow-left ms-2'}"/>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+
+                
+                
+
+                <!-- Client Testimonials Section -->
+                <t t-set="site_cfg" t-value="site_config"/>
+                <t t-set="testimonials_list" t-value="testimonials or (website and website.env['wasm.testimonial'].sudo().search([('active', '=', True)], order='sequence, id'))"/>
+                <t t-if="site_cfg and site_cfg.show_testimonials and testimonials_list">
+                    <section class="py-5 bg-white position-relative" id="testimonials">
+                        <div class="container">
+                            <div class="text-center mb-5">
+                                <h2 class="wasm-section-title d-inline-block" t-out="site_config.tx('home.testimonials.title')"/>
+                            </div>
+                            <div class="row g-4 justify-content-center">
+                                <t t-foreach="testimonials_list" t-as="item">
+                                    <div class="col-md-4">
+                                        <div class="p-4 bg-white rounded-4 shadow-sm h-100 border wasm-hover-card d-flex flex-column justify-content-between">
+                                            <div>
+                                                <!-- Gold Rating Stars -->
+                                                <div class="text-warning mb-3 fs-5">
+                                                    <t t-set="num_stars" t-value="int(item.rating) if item.rating else 5"/>
+                                                    <t t-foreach="range(num_stars)" t-as="s">
+                                                        <i class="fa fa-star"></i>
+                                                    </t>
+                                                    <t t-foreach="range(5 - num_stars)" t-as="s">
+                                                        <i class="fa fa-star-o opacity-50"></i>
+                                                    </t>
+                                                </div>
+                                                <!-- Review Text -->
+                                                <p class="text-muted fs-6 lh-lg mb-4" t-out="item.feedback"/>
+                                            </div>
+                                            <!-- Client Details Header/Footer -->
+                                            <div class="d-flex align-items-center gap-3 border-top pt-3 mt-auto">
+                                                <t t-if="item.image">
+                                                    <img t-att-src="item.wasm_image_url()" t-att-alt="item.name" loading="lazy" decoding="async" width="44" height="44" class="rounded-circle border flex-shrink-0" style="width: 44px; height: 44px; object-fit: cover;"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <div class="rounded-circle bg-warning text-dark fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                                                        <t t-out="item.name and item.name[0].upper() or '★'"/>
+                                                    </div>
+                                                </t>
+                                                <div class="overflow-hidden">
+                                                    <div class="fw-bold text-dark fs-6 text-truncate" t-out="item.name"/>
+                                                    <small class="text-muted text-truncate d-block" t-if="item.role_or_project" t-out="item.role_or_project"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </section>
+                </t>
+
+
+                <!-- OUR TEAM Section (wasm.content.item, section "team") -->
+                <t t-set="team_items" t-value="site_config.items('team')"/>
+                <section class="py-5 bg-white position-relative overflow-hidden" t-if="team_items">
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h2 class="wasm-section-title mb-3" t-out="site_config.tx('home.team.title')"/>
+                        </div>
+                        <div class="wasm-auto-slider" data-auto-interval="2200" data-direction="right">
+                            <div class="wasm-slider-track">
+                                <t t-foreach="team_items" t-as="item">
+                                    <div class="wasm-slider-item">
+                                        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white wasm-hover-card p-4 text-center d-flex flex-column align-items-center">
+                                            <div class="position-relative mb-3" style="width: 110px; height: 110px;">
+                                                <div class="w-100 h-100 rounded-circle bg-warning p-1 shadow-sm overflow-hidden">
+                                                    <img t-if="item.img_url()" t-att-src="item.img_url()" t-att-alt="item.t('title')" loading="lazy" decoding="async" width="102" height="102" class="w-100 h-100 rounded-circle" style="object-fit: cover;"/>
+                                                </div>
+                                                <span t-if="item.icon" class="position-absolute bottom-0 end-0 bg-warning text-dark p-2 rounded-circle shadow-sm" t-att-title="item.t('subtitle') or None">
+                                                    <i t-attf-class="fa #{item.icon} small"></i>
+                                                </span>
+                                            </div>
+                                            <h3 class="h5 fw-bold mb-1 text-dark" t-out="item.t('title')"/>
+                                            <p class="text-warning fw-bold small mb-2" t-if="item.t('subtitle')" t-out="item.t('subtitle')"/>
+                                            <p class="text-muted small mb-4 lh-base" style="min-height: 54px;" t-out="item.t('desc')"/>
+                                            <div class="mt-auto w-100 pt-3 border-top" t-if="item.t('badge')">
+                                                <span class="badge bg-light text-dark border border-warning px-3 py-2 rounded-pill fw-semibold"><i t-if="item.icon" t-attf-class="fa #{item.icon} text-warning me-1"></i><t t-out="item.t('badge')"/></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- OUR PARTNERS Section (Auto-Slider matching OUR TEAM) -->
+                <section class="py-5 bg-white position-relative overflow-hidden">
+                    <t t-set="partners_list" t-value="partners or website.env['wasm.partner'].sudo().search([('active', '=', True)], order='sequence, id')"/>
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <h2 class="wasm-section-title mb-3" t-out="site_config.tx('home.partners.title')"/>
+                        </div>
+                        <div class="wasm-auto-slider" data-auto-interval="2200" data-direction="left">
+                            <div class="wasm-slider-track">
+                                <t t-foreach="partners_list" t-as="partner">
+                                    <div class="wasm-slider-item">
+                                        <a t-att-href="partner.website_url or '#'" t-att-target="partner.website_url and '_blank' or None" rel="noopener noreferrer" class="card h-100 border-0 shadow-sm rounded-4 bg-white wasm-hover-card p-4 text-center d-flex flex-column align-items-center justify-content-center text-decoration-none" t-att-title="partner.name">
+                                            <div class="d-flex align-items-center justify-content-center mb-3" style="height: 70px; width: 100%;">
+                                                <t t-if="partner.logo or partner.logo_url">
+                                                    <img t-att-src="partner.get_logo_src()" t-att-alt="partner.name" loading="lazy" decoding="async" style="max-height: 55px; max-width: 150px; object-fit: contain;"/>
+                                                </t>
+                                                <t t-else="">
+                                                    <i class="fa fa-handshake-o fa-3x text-warning"></i>
+                                                </t>
+                                            </div>
+                                            <h3 class="h5 fw-bold text-dark mb-2" t-out="partner.name"/>
+                                            <t t-if="partner.website_url">
+                                                <span class="badge bg-light text-dark border border-warning px-3 py-1 rounded-pill fw-semibold small mt-auto"><i class="fa fa-external-link text-warning me-1"></i><t t-out="site_config.tx('home.partners.visit')"/></span>
+                                            </t>
+                                        </a>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="oe_structure" id="oe_structure_home_bottom"/>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- Alias template for home_page_template -->
+    <template id="home_page_template" name="Home - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.homepage"/>
+    </template>
+
+    <!-- ============================================================
+         REUSABLE FLUID ANIMATED HERO HEADER TEMPLATE
+         ============================================================ -->
+    <!-- Shared animated gold wave divider (bottom of every page hero) -->
+    <!-- The gold swoosh under each page hero is drawn by CSS on the hero itself
+         (static/src/img/arfa_swoosh_*.svg); this marker is kept for the pages that call it. -->
+    <template id="wasm_wave_divider" name="ARFA Gold Swoosh Divider">
+        <span class="arfa-waves" aria-hidden="true"/>
+    </template>
+
+    <template id="wasm_fluid_hero_header" name="Wasm Fluid Animated Hero Header">
+        <section class="wasm-fluid-hero-section text-center">
+            <div class="container position-relative" style="z-index: 5;">
+                <div class="wasm-fluid-hero-content">
+                    <t t-if="badge_text">
+                        <span class="badge wasm-hero-badge px-4 py-2 rounded-pill fw-bold text-uppercase mb-3 shadow-sm" style="font-size: 0.9rem; letter-spacing: 1.2px; background-color: #F2B91E !important; color: #192754 !important;">
+                            <t t-out="badge_text"/>
+                        </span>
+                    </t>
+                    <h1 class="display-3 fw-bold mb-2" style="color: #ffffff !important; letter-spacing: 0.5px; font-weight: 900;">
+                        <t t-out="title_text"/>
+                    </h1>
+                    <div class="mx-auto my-3" style="width: 90px; height: 4px; background: linear-gradient(90deg, #F6D365, #E8A317); border-radius: 2px;"/>
+                    <t t-if="subtitle_text">
+                        <p class="fs-4 mx-auto fw-bold mb-0" style="color: rgba(255, 255, 255, 0.85) !important; max-width: 780px; line-height: 1.6;">
+                            <t t-out="subtitle_text"/>
+                        </p>
+                    </t>
+                </div>
+            </div>
+            <t t-call="wasm_website.wasm_wave_divider"/>
+        </section>
+    </template>
+</odoo>

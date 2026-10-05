@@ -76,7 +76,10 @@
                                     <field name="hero_title_ar"/>
                                     <field name="hero_title_en"/>
                                 </group>
-                                <group string="خلفية الهيرو">
+                                <group string="فيديو وخلفية الهيرو">
+                                    <field name="home_hero_video_file" filename="home_hero_video_filename" widget="binary"/>
+                                    <field name="home_hero_video_filename" invisible="1"/>
+                                    <field name="home_hero_video_url" invisible="home_hero_video_file"/>
                                     <field name="hero_bg_image" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 250px;"/>
                                 </group>
                             </group>
@@ -99,194 +102,61 @@
                             </group>
                         </page>
 
-                        <!-- Tab 5: Hero Pillar Cards -->
-                        <page string="كروت الركائز الرئيسية (Pillar Cards)" name="pillar_cards_settings">
+                        <!-- Tab: page images, maps -->
+                        <page string="صور الصفحات والخرائط" name="pages_media">
                             <group>
-                                <group string="الكارت الأول (الإنشائية)">
-                                    <field name="pillar1_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="pillar1_title_ar"/>
-                                    <field name="pillar1_title_en"/>
-                                    <field name="pillar1_desc_ar"/>
-                                    <field name="pillar1_desc_en"/>
-                                    <field name="pillar1_link"/>
+                                <group string="صور الصفحات">
+                                    <field name="about_image" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
+                                    <field name="footer_logo" widget="image" class="oe_avatar" style="max-width: 200px; max-height: 120px;"/>
                                 </group>
-                                <group string="الكارت الثاني (MEP)">
-                                    <field name="pillar2_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="pillar2_title_ar"/>
-                                    <field name="pillar2_title_en"/>
-                                    <field name="pillar2_desc_ar"/>
-                                    <field name="pillar2_desc_en"/>
-                                    <field name="pillar2_link"/>
+                                <group string="الخرائط (رابط التضمين من Google Maps)">
+                                    <field name="map_embed_url" placeholder="https://www.google.com/maps/embed?pb=..."/>
+                                    <field name="map_link_url" widget="url"/>
+                                    <field name="hq_map_embed_url" placeholder="https://www.google.com/maps/embed?pb=..."/>
+                                    <field name="hq_map_link_url" widget="url"/>
                                 </group>
                             </group>
-                            <group string="الكارت الثالث (إدارة المشاريع وتطوير المفتاح)">
-                                <group>
-                                    <field name="pillar3_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="pillar3_title_ar"/>
-                                    <field name="pillar3_title_en"/>
-                                </group>
-                                <group>
-                                    <field name="pillar3_desc_ar"/>
-                                    <field name="pillar3_desc_en"/>
-                                    <field name="pillar3_link"/>
-                                </group>
-                            </group>
+                            <div class="alert alert-info shadow-sm rounded-3 mt-3" role="status">
+                                <i class="fa fa-map-marker me-2" title="Map"/>
+                                للحصول على رابط الخريطة: افتح الموقع في Google Maps ← مشاركة ← تضمين خريطة ← انسخ الرابط الموجود داخل src="...".
+                                إذا تركت أي صورة فارغة يظهر التصميم الافتراضي.
+                            </div>
                         </page>
 
-                        <!-- Tab 6: Company Statistics Cards -->
-                        <page string="إحصائيات الشركة (Company Statistics)" name="stats_settings">
-                            <group>
-                                <group string="الإحصائية الأولى (المشاريع)">
-                                    <field name="stat1_val"/>
-                                    <field name="stat1_label_ar"/>
-                                    <field name="stat1_label_en"/>
-                                </group>
-                                <group string="الإحصائية الثانية (سنوات الخبرة)">
-                                    <field name="stat2_val"/>
-                                    <field name="stat2_label_ar"/>
-                                    <field name="stat2_label_en"/>
-                                </group>
-                            </group>
-                            <group>
-                                <group string="الإحصائية الثالثة (المساحات المنفذة)">
-                                    <field name="stat3_val"/>
-                                    <field name="stat3_label_ar"/>
-                                    <field name="stat3_label_en"/>
-                                </group>
-                                <group string="الإحصائية الرابعة (المهندسين والمتخصصين)">
-                                    <field name="stat4_val"/>
-                                    <field name="stat4_label_ar"/>
-                                    <field name="stat4_label_en"/>
-                                </group>
-                            </group>
-                        </page>
-
-                        <!-- Tab 7: Why Choose Us Cards -->
-                        <page string="كروت لماذا تختار عرفة الهندسية (Why Choose Us)" name="why_choose_settings">
-                            <group>
-                                <group string="الكارت الأول (الكود السعودي SBC)">
-                                    <field name="why1_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="why1_title_ar"/>
-                                    <field name="why1_title_en"/>
-                                    <field name="why1_desc_ar"/>
-                                    <field name="why1_desc_en"/>
-                                </group>
-                                <group string="الكارت الثاني (تقنيات BIM)">
-                                    <field name="why2_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="why2_title_ar"/>
-                                    <field name="why2_title_en"/>
-                                    <field name="why2_desc_ar"/>
-                                    <field name="why2_desc_en"/>
-                                </group>
-                            </group>
-                            <group>
-                                <group string="الكارت الثالث (الأسطول والمعدات)">
-                                    <field name="why3_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="why3_title_ar"/>
-                                    <field name="why3_title_en"/>
-                                    <field name="why3_desc_ar"/>
-                                    <field name="why3_desc_en"/>
-                                </group>
-                                <group string="الكارت الرابع (الالتزام الزمني)">
-                                    <field name="why4_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="why4_title_ar"/>
-                                    <field name="why4_title_en"/>
-                                    <field name="why4_desc_ar"/>
-                                    <field name="why4_desc_en"/>
-                                </group>
-                            </group>
-                            <group>
-                                <group string="الكارت الخامس (مختبر الجودة)">
-                                    <field name="why5_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="why5_title_ar"/>
-                                    <field name="why5_title_en"/>
-                                    <field name="why5_desc_ar"/>
-                                    <field name="why5_desc_en"/>
-                                </group>
-                                <group string="الكارت السادس (معايير السلامة ISO)">
-                                    <field name="why6_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="why6_title_ar"/>
-                                    <field name="why6_title_en"/>
-                                    <field name="why6_desc_ar"/>
-                                    <field name="why6_desc_en"/>
-                                </group>
-                            </group>
-                        </page>
-
-                        <!-- Tab 8: Services Cards -->
-                        <page string="كروت الخدمات الإنشائية (Services Cards)" name="service_cards_settings">
-                            <group>
-                                <group string="الخدمة الأولى (Modern building systems - الأنظمة الحديثة والمباني)">
-                                    <field name="srv1_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv1_title_ar"/>
-                                    <field name="srv1_title_en"/>
-                                    <field name="srv1_url"/>
-                                    <field name="srv1_desc_ar"/>
-                                    <field name="srv1_desc_en"/>
-                                </group>
-                                <group string="الخدمة الثانية (Electromechanical systems - الكهروميكانيك MEP)">
-                                    <field name="srv2_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv2_title_ar"/>
-                                    <field name="srv2_title_en"/>
-                                    <field name="srv2_url"/>
-                                    <field name="srv2_desc_ar"/>
-                                    <field name="srv2_desc_en"/>
-                                </group>
-                            </group>
-                            <group>
-                                <group string="الخدمة الثالثة (Smart building systems - أنظمة المباني الذكية BMS)">
-                                    <field name="srv3_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv3_title_ar"/>
-                                    <field name="srv3_title_en"/>
-                                    <field name="srv3_url"/>
-                                    <field name="srv3_desc_ar"/>
-                                    <field name="srv3_desc_en"/>
-                                </group>
-                                <group string="الخدمة الرابعة (Alternative energy solutions - حلول الطاقة البديلة)">
-                                    <field name="srv4_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv4_title_ar"/>
-                                    <field name="srv4_title_en"/>
-                                    <field name="srv4_url"/>
-                                    <field name="srv4_desc_ar"/>
-                                    <field name="srv4_desc_en"/>
-                                </group>
-                            </group>
-                            <group>
-                                <group string="الخدمة الخامسة (Fire protection &amp; prevention systems - الوقاية من الحريق)">
-                                    <field name="srv5_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv5_title_ar"/>
-                                    <field name="srv5_title_en"/>
-                                    <field name="srv5_url"/>
-                                    <field name="srv5_desc_ar"/>
-                                    <field name="srv5_desc_en"/>
-                                </group>
-                                <group string="الخدمة السادسة (Medical Gas Systems - أنظمة الغازات الطبية)">
-                                    <field name="srv6_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv6_title_ar"/>
-                                    <field name="srv6_title_en"/>
-                                    <field name="srv6_url"/>
-                                    <field name="srv6_desc_ar"/>
-                                    <field name="srv6_desc_en"/>
-                                </group>
-                            </group>
-                            <group>
-                                <group string="الخدمة السابعة (Infrastructure Development - البنية التحتية والشبكات)">
-                                    <field name="srv7_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv7_title_ar"/>
-                                    <field name="srv7_title_en"/>
-                                    <field name="srv7_url"/>
-                                    <field name="srv7_desc_ar"/>
-                                    <field name="srv7_desc_en"/>
-                                </group>
-                                <group string="الخدمة الثامنة (Planning &amp; Construction - التخطيط والإنشاءات الخرسانية)">
-                                    <field name="srv8_img" widget="image" class="oe_avatar" style="max-width: 250px; max-height: 180px;"/>
-                                    <field name="srv8_title_ar"/>
-                                    <field name="srv8_title_en"/>
-                                    <field name="srv8_url"/>
-                                    <field name="srv8_desc_ar"/>
-                                    <field name="srv8_desc_en"/>
-                                </group>
-                            </group>
+                        <!-- Tab: where to edit the rest of the content -->
+                        <page string="باقي محتوى الموقع" name="content_shortcuts">
+                            <div class="row g-3 mt-1">
+                                <div class="col-md-6 col-lg-4">
+                                    <button name="%(wasm_website.action_wasm_text)d" type="action" class="btn btn-outline-primary w-100 text-start p-3" icon="fa-font">
+                                        <strong> نصوص الموقع</strong><br/><small class="text-muted">كل العناوين والفقرات والأزرار والنماذج والفوتر</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <button name="%(wasm_website.action_wasm_content_item)d" type="action" class="btn btn-outline-primary w-100 text-start p-3" icon="fa-th-large">
+                                        <strong> الكروت والقوائم</strong><br/><small class="text-muted">كروت الواجهة، الإحصائيات، لماذا عرفة، الفريق، الخبرات، الأقسام، روابط الفوتر، المساعد الذكي</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <button name="%(wasm_website.action_wasm_service)d" type="action" class="btn btn-outline-primary w-100 text-start p-3" icon="fa-cogs">
+                                        <strong> الخدمات</strong><br/><small class="text-muted">كروت الخدمات وصفحة كل خدمة ومعرض صورها وفيديوهاتها</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <button name="%(wasm_website.action_wasm_project)d" type="action" class="btn btn-outline-primary w-100 text-start p-3" icon="fa-building">
+                                        <strong> المشاريع</strong><br/><small class="text-muted">المشاريع وتفاصيلها وصورها</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <button name="%(wasm_website.action_wasm_gallery)d" type="action" class="btn btn-outline-primary w-100 text-start p-3" icon="fa-picture-o">
+                                        <strong> معرض الصور والفيديو</strong><br/><small class="text-muted">صور وفيديوهات صفحة المشاريع والخدمات</small>
+                                    </button>
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <button name="%(wasm_website.action_wasm_news)d" type="action" class="btn btn-outline-primary w-100 text-start p-3" icon="fa-newspaper-o">
+                                        <strong> الأخبار</strong><br/><small class="text-muted">الأخبار والمقالات</small>
+                                    </button>
+                                </div>
+                            </div>
                         </page>
 
                         <!-- Tab 9: Company Profile PDF -->
@@ -311,6 +181,7 @@
                                     <field name="brand_name_en"/>
                                     <field name="founding_year"/>
                                     <field name="service_area" placeholder="مثال: الرياض، جدة، مكة، المنطقة الشرقية"/>
+                                    <field name="hide_from_search_engines" widget="boolean_toggle"/>
                                 </group>
                                 <group string="وصف الموقع في جوجل ومساعدات الذكاء الاصطناعي">
                                     <field name="seo_description_ar"/>

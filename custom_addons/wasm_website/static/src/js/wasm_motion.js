@@ -162,36 +162,8 @@
         document.querySelectorAll('input.arfa-form-ts').forEach(function (i) { if (!i.value) i.value = now; });
     }
 
-    /* footer social icons follow the links saved in the backend (empty = hidden) */
-    function applySocialLinks() {
-        var node = document.getElementById('arfa-site-data');
-        if (!node) return;
-        var links;
-        try { links = JSON.parse(node.textContent || '{}'); } catch (e) { return; }
-        var map = { 'fa-twitter': 'x', 'fa-x-twitter': 'x', 'fa-linkedin': 'linkedin', 'fa-instagram': 'instagram',
-                    'fa-facebook': 'facebook', 'fa-youtube': 'youtube', 'fa-youtube-play': 'youtube',
-                    'fa-whatsapp': 'whatsapp', 'fa-tiktok': 'tiktok', 'fa-snapchat': 'snapchat', 'fa-snapchat-ghost': 'snapchat' };
-        document.querySelectorAll('.wasm-social-icon').forEach(function (a) {
-            var icon = a.querySelector('[class*="fa-"]');
-            if (!icon) return;
-            var key = null;
-            Object.keys(map).forEach(function (cls) { if (icon.classList.contains(cls)) key = map[cls]; });
-            if (!key) return;
-            if (links[key]) {
-                a.href = links[key];
-                a.target = '_blank';
-                a.rel = 'noopener noreferrer';
-                a.setAttribute('aria-label', key);
-                a.style.removeProperty('display');
-            } else {
-                a.style.display = 'none';
-            }
-        });
-    }
-
     function boot() {
         stampForms();
-        if (!isEditMode()) applySocialLinks();
         if (!isEditMode()) { markGoldOnDark(); hideBrokenImages(); }
         start();
         if (window.MutationObserver && document.body) {

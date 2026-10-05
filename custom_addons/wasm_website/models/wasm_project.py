@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields
+from odoo import api, fields, models
+
+from .wasm_mixins import BANNER_PX, wasm_check_urls
 
 
 class WasmProject(models.Model):
     _name = 'wasm.project'
     _description = 'مشاريع شركة عرفة الهندسية'
     _order = 'sequence, id desc'
+    _inherit = ['wasm.image.mixin']
+    _wasm_image_fields = {'image': BANNER_PX}
 
     name = fields.Char(string='اسم المشروع', required=True, translate=True)
     sequence = fields.Integer(string='التسلسل', default=10)
@@ -52,6 +56,10 @@ class WasmProject(models.Model):
 
     gallery_image_ids = fields.One2many('wasm.gallery.image', 'project_id', string='صور المشروع حسب الأقسام')
 
+    @api.constrains('video_url')
+    def _check_wasm_urls(self):
+        wasm_check_urls(self, url_fields=('video_url',))
+
     # ------------------------------------------------------------------
     # Helpers for the website templates
     # ------------------------------------------------------------------
@@ -63,25 +71,21 @@ class WasmProject(models.Model):
         self.ensure_one()
         return '/wasm/project/%s/image?unique=%s' % (self.id, self.wasm_unique())
 
-    _TYPE_EN = {
-        'commercial': 'Commercial & Towers',
-        'residential': 'Residential',
-        'mep': 'MEP & HVAC',
-        'infrastructure': 'Structure & Infrastructure',
-    }
-    _STATE_EN = {'completed': 'Completed', 'in_progress': 'In progress'}
+    # Labels are editable website texts (projects.state.* / projects.type.*), see models/texts.
+    def _wasm_label(self, key, is_en):
+        return self.env['wasm.text'].sudo().get_text(key, 'en_US' if is_en else 'ar_001')
 
     def wasm_type_label(self, is_en=False):
         self.ensure_one()
-        if is_en:
-            return self._TYPE_EN.get(self.project_type, '')
-        return dict(self._fields['project_type'].selection).get(self.project_type, '')
+        if not self.project_type:
+            return ''
+        return self._wasm_label('projects.type.%s' % self.project_type, is_en)
 
     def wasm_state_label(self, is_en=False):
         self.ensure_one()
-        if is_en:
-            return self._STATE_EN.get(self.state, '')
-        return dict(self._fields['state'].selection).get(self.state, '')
+        if not self.state:
+            return ''
+        return self._wasm_label('projects.state.%s' % self.state, is_en)
 
     def wasm_floor_rows(self):
         """floor_breakdown lines -> [(label, value)]; a line without ':' becomes a sub-heading."""
@@ -101,22 +105,46 @@ class WasmProject(models.Model):
         return rows
 
     def wasm_gallery_items(self):
-        """Gallery entries: categorized gallery photos, then images uploaded in the media tab."""
+        """Gallery entries: categorized gallery photos/videos, then images uploaded in the media tab.
+
+        Each item: type ('image'|'video'), url (photo / video cover, may be '' for a video),
+        caption, cat, cat_label, and for videos video_src (mp4), embed (YouTube/Vimeo), poster.
+        """
         self.ensure_one()
         items = []
-        for img in self.gallery_image_ids.filtered('active').sorted(lambda r: (r.sequence, r.id)):
-            items.append({
-                'url': img.wasm_image_url(),
-                'caption': img.name or '',
-                'cat': img.category or 'all',
-                'cat_label': img.wasm_category_label() if img.category != 'all' else '',
-            })
+        for media in self.gallery_image_ids.filtered('active').sorted(lambda r: (r.sequence, r.id)):
+            item = {
+                'type': 'image',
+                'url': media.wasm_image_url(),
+                'caption': media.name or '',
+                'cat': media.category or 'all',
+                'cat_label': media.wasm_category_label() if media.category != 'all' else '',
+                'video_src': '',
+                'embed': '',
+                'poster': '',
+            }
+            if media.wasm_is_video():
+                item.update({
+                    'type': 'video',
+                    'video_src': media.wasm_video_src(),
+                    'embed': media.wasm_video_embed(),
+                    'poster': media.wasm_image_url(),
+                })
+                if not (item['video_src'] or item['embed']):
+                    continue
+            elif not item['url']:
+                continue
+            items.append(item)
         for att in self.sudo().attachment_ids.filtered(lambda a: (a.mimetype or '').startswith('image/')):
             items.append({
+                'type': 'image',
                 'url': '/wasm/project/%s/media/%s?unique=%s' % (self.id, att.id, att.checksum or '0'),
                 'caption': att.name or '',
                 'cat': 'all',
                 'cat_label': '',
+                'video_src': '',
+                'embed': '',
+                'poster': '',
             })
         return items
 

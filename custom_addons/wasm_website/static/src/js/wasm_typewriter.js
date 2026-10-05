@@ -22,6 +22,7 @@
         if (!s) return;
         clearTimeout(s.timer);
         s.stopped = true;
+        el.classList.remove('wasm-typewriter-on');
         el.innerHTML = s.originalHTML;
         state.delete(el);
     }
@@ -43,27 +44,47 @@
         var s = { originalHTML: el.innerHTML, timer: null, stopped: false };
         state.set(el, s);
 
+        // Layout-shift free: the whole sentence is always in the paragraph, so it keeps its final
+        // size and every word is already on its final line. "Typing" only reveals words: the part
+        // not typed yet is visibility:hidden, and the blinking cursor is the end border of the
+        // typed part (no element moves). Screen readers get the full sentence once.
+        var sr = document.createElement('span');
+        sr.className = 'visually-hidden';
+        sr.textContent = text;
         var content = document.createElement('span');
-        content.className = 'wasm-typewriter-content';
-        var cursor = document.createElement('span');
-        cursor.className = 'wasm-typewriter-cursor';
-        cursor.textContent = '|';
+        content.className = 'wasm-typewriter-content wasm-typewriter-caret';
+        content.setAttribute('aria-hidden', 'true');
+        var rest = document.createElement('span');
+        rest.className = 'wasm-typewriter-content wasm-typewriter-rest';
+        rest.setAttribute('aria-hidden', 'true');
         el.innerHTML = '';
+        el.classList.add('wasm-typewriter-on');
+        el.appendChild(sr);
         el.appendChild(content);
-        el.appendChild(cursor);
+        el.appendChild(rest);
 
         var words = text.split(/\s+/);
+        function show(n) {
+            content.textContent = words.slice(0, n).join(' ');
+            rest.textContent = (n && n < words.length ? ' ' : '') + words.slice(n).join(' ');
+        }
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            show(words.length); // no animation, just the sentence
+            return;
+        }
+
         var i = 0;
+        show(0);
         function tick() {
             if (s.stopped) return;
-            content.textContent = words.slice(0, i).join(' ');
+            show(i);
             i++;
             if (i <= words.length) {
                 s.timer = setTimeout(tick, 140);
             } else {
                 s.timer = setTimeout(function () {
                     i = 0;
-                    content.textContent = '';
+                    show(0);
                     s.timer = setTimeout(tick, 400);
                 }, 4000);
             }

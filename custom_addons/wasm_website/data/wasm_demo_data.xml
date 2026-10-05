@@ -1,56 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
-        <!-- Services -->
-        <record id="service_civil" model="wasm.service">
-            <field name="name">Modern building systems</field>
-            <field name="sequence">1</field>
-            <field name="icon">fa-building</field>
-            <field name="category">civil</field>
-            <field name="short_description">Advanced modern construction tech, glass facades, prefab steel framing, and turnkey fitouts.</field>
-            <field name="detailed_description"><![CDATA[
-                <p>Our Modern Building Systems services include:</p>
-                <ul>
-                    <li>Modern construction technologies, modular structures, and prefab steel framing.</li>
-                    <li>Architectural glass curtain walls and reinforced aluminum facades.</li>
-                    <li>Steel trusses and heavy industrial building frameworks.</li>
-                </ul>
-            ]]></field>
-        </record>
-
-        <record id="service_mep" model="wasm.service">
-            <field name="name">Electromechanical systems</field>
-            <field name="sequence">2</field>
-            <field name="icon">fa-bolt</field>
-            <field name="category">mep</field>
-            <field name="short_description">Design, supply, and installation of power grids, mechanical infrastructure, and sanitary networks.</field>
-            <field name="detailed_description"><![CDATA[
-                <p>Comprehensive MEP Services:</p>
-                <ul>
-                    <li>Cable trays, main distribution panels, and power grid wiring.</li>
-                    <li>Civil defense certified fire protection, alarms, and suppression systems.</li>
-                    <li>Water supply piping, drainage infrastructure, and smart pumping stations.</li>
-                </ul>
-            ]]></field>
-        </record>
-
-        <record id="service_hvac" model="wasm.service">
-            <field name="name">Smart building systems</field>
-            <field name="sequence">3</field>
-            <field name="icon">fa-cogs</field>
-            <field name="category">hvac</field>
-            <field name="short_description">Building automation, smart control panels, security systems, and early warning technology.</field>
-        </record>
-
-        <record id="service_finishing" model="wasm.service">
-            <field name="name">Alternative energy solutions</field>
-            <field name="sequence">4</field>
-            <field name="icon">fa-sun-o</field>
-            <field name="category">finishing</field>
-            <field name="short_description">Photovoltaic solar energy systems and energy optimization solutions for commercial sectors.</field>
-        </record>
-
-        <!-- Official Company Profile Projects (From Company Profile PDF) -->
+        <!-- Projects, partners, testimonials -->
         <record id="project_ritz_carlton" model="wasm.project">
             <field name="name">King Abdulaziz International Conference Center &amp; The Ritz-Carlton Hall</field>
             <field name="sequence">1</field>

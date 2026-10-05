@@ -1,0 +1,34 @@
+/* Projects / services galleries: video tiles + video support in the lightbox (wasm_project_gallery.js) */
+
+/* play badge over a video thumbnail */
+.arfa-video-play {
+    position: absolute; top: 50%; left: 50%; z-index: 2;
+    width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(25, 39, 84, .78); color: #ffffff; font-size: 24px;
+    border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+    transition: transform .3s ease, background .3s ease; pointer-events: none;
+}
+.arfa-video-play .fa { margin-left: 4px; }
+.arfa-pd-tile-video:hover .arfa-video-play,
+.wasm-gallery-video:hover .arfa-video-play { transform: scale(1.1); background: #E8A317; color: #192754; }
+
+/* video thumbnail without cover image: first frame (mp4) or a navy placeholder */
+.arfa-pd-tile-video, .wasm-gallery-video { background: linear-gradient(135deg, #192754 0%, #24356e 100%); cursor: pointer; }
+.arfa-pd-tile-video video, .wasm-gallery-video video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.wasm-gallery-video img { object-fit: cover; transition: transform 0.5s ease; }
+.arfa-pd-tile-video .arfa-pd-tile-caption { z-index: 1; }
+
+/* lightbox: videos */
+.arfa-lb-figure .arfa-lb-media:empty { display: none; }
+.arfa-lb-figure.is-video img { display: none; }
+.arfa-lb-media video { display: block; max-width: 100%; max-height: calc(100vh - 140px); border-radius: 10px; background: #000000; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.arfa-lb-media iframe { display: block; width: min(1100px, calc(100vw - 180px)); aspect-ratio: 16 / 9; max-height: calc(100vh - 140px); border: 0; border-radius: 10px; background: #000000; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.arfa-lightbox.is-single .arfa-lb-nav { display: none; }
+@media (max-width: 767.98px) {
+    .arfa-lb-media iframe { width: calc(100vw - 24px); }
+}
+
+/* service page: optional detailed description + inline videos */
+.wasm-service-details img { max-width: 100%; height: auto; border-radius: 12px; }
+.wasm-service-video iframe, .wasm-service-video video { display: block; background: #000000; }

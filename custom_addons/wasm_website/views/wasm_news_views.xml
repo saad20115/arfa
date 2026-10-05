@@ -39,6 +39,8 @@
                         <group>
                             <field name="slug" placeholder="عنوان مسار الخبر URL"/>
                             <field name="image_url" placeholder="https://... (اختياري إذا لم ترفع صورة)"/>
+                            <field name="badge_en" placeholder="e.g. Project Milestone (optional)"/>
+                            <field name="badge_ar" placeholder="مثال: إنجازات المشاريع (اختياري)"/>
                             <field name="sequence"/>
                             <field name="active"/>
                         </group>

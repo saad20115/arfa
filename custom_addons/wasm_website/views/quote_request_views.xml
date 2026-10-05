@@ -28,6 +28,8 @@
                             <field name="email" widget="email"/>
                             <field name="customer_type" widget="radio"/>
                             <field name="department" widget="badge"/>
+                            <field name="source" widget="badge"/>
+                            <field name="client_ip" groups="wasm_website.group_wasm_manager"/>
                         </group>
                         <group string="تفاصيل المشروع والخدمات">
                             <field name="project_type"/>
@@ -69,6 +71,7 @@
                 <field name="project_type"/>
                 <field name="project_location"/>
                 <field name="department"/>
+                <field name="source" widget="badge" optional="show"/>
                 <field name="create_date" string="تاريخ الطلب"/>
                 <field name="state" widget="badge" decoration-info="state == 'new'" decoration-warning="state in ('under_review', 'pricing')" decoration-success="state in ('offer_sent', 'contracted')" decoration-muted="state == 'closed'"/>
             </list>

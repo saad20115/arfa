@@ -80,6 +80,22 @@ function initWasmAiBot() {
         }
     });
 
+    // Answers, contact data and welcome text rendered by the template (all editable in the backend)
+    const botData = readBotData();
+
+    function readBotData() {
+        const node = document.getElementById("arfa-bot-data");
+        let data = {};
+        if (node) {
+            try { data = JSON.parse(node.textContent || "{}") || {}; } catch (err) { data = {}; }
+        }
+        data.contact = data.contact || {};
+        data.replies = (data.replies || []).map(function (r) {
+            return Object.assign({}, r, { kw: splitKeywords(r.keywords) });
+        });
+        return data;
+    }
+
     function processUserQuery(text) {
         const isEn = (document.documentElement.lang && document.documentElement.lang.startsWith("en")) || window.location.pathname.startsWith("/en");
 
@@ -109,6 +125,7 @@ function initWasmAiBot() {
         if (sender === "user") {
             bubbleDiv.textContent = content;
         } else {
+            // bot answers are built by renderReply(): every admin text is escaped there
             bubbleDiv.innerHTML = content;
         }
 
@@ -141,114 +158,130 @@ function initWasmAiBot() {
     }
 
     function generateAiResponse(query, isEn) {
-        const q = query.toLowerCase();
-
-        // Pricing / RFQ / Quote
-        if (q.includes("سعر") || q.includes("عرض") || q.includes("تكلفة") || q.includes("quote") || q.includes("price") || q.includes("rfq") || q.includes("cost") || q.includes("طلب")) {
-            if (isEn) {
-                return `
-                    <p class="mb-2">We are delighted to prepare a detailed engineering quotation for your project! 📋</p>
-                    <p class="mb-2">Please fill out our quick online RFQ form to route your drawings to our estimating team:</p>
-                    <a href="/quote" class="btn btn-sm btn-warning rounded-pill fw-bold text-dark w-100">Proceed to RFQ Form <i class="fa fa-arrow-right ms-1"></i></a>
-                `;
-            }
-            return `
-                <p class="mb-2">يسعدنا تقديم عرض سعر تفصيلي لمشروعك وفق الكود السعودي! 📋</p>
-                <p class="mb-2">يمكنك تعبئة النموذج الإلكتروني السريع وسيتم تحويله فوراً لقسم الحسابات والبرامج الإنشائية:</p>
-                <a href="/quote" class="btn btn-sm btn-warning rounded-pill fw-bold text-dark w-100">الانتقال لنموذج طلب عرض السعر <i class="fa fa-arrow-left ms-1"></i></a>
-            `;
+        const reply = findReply(botData.replies, query);
+        if (reply) {
+            return renderReply(reply, isEn, botData.contact);
         }
-
-        // Saudi Building Code (SBC)
-        if (q.includes("كود") || q.includes("sbc") || q.includes("سعودي") || q.includes("معايير") || q.includes("سلامة") || q.includes("code") || q.includes("saudi")) {
-            if (isEn) {
-                return `
-                    <p class="mb-2">Wasm General Contracting strictly adheres to the <strong>Saudi Building Code (SBC 301 - SBC 306)</strong> 🏗️</p>
-                    <p class="mb-0">We guarantee full structural compliance, certified concrete testing, and rigid safety quality control for every construction milestone.</p>
-                `;
-            }
-            return `
-                <p class="mb-2">تلتزم شركة وسم للمقاولات العامة بالمرجع القياسي <strong>الكود السعودي للبناء (SBC 301 - SBC 306)</strong> 🏗️</p>
-                <p class="mb-0">نضمن لك أعلى درجات السلامة الإنشائية، والخرسانات المعتمدة، واختبارات الجودة المخبرية لكل مرحلة بناء.</p>
-            `;
-        }
-
-        // MEP / HVAC / Mechanical / Electrical / Plumbing
-        if (q.includes("تكييف") || q.includes("mep") || q.includes("كهرباء") || q.includes("سباكة") || q.includes("حريق") || q.includes("hvac") || q.includes("cooling") || q.includes("fire")) {
-            if (isEn) {
-                return `
-                    <p class="mb-2">We provide integrated MEP &amp; Central HVAC solutions including: ⚡</p>
-                    <ul class="mb-2 ps-3 small">
-                        <li>Central Air Conditioning &amp; Ducting (VRF / Chilled Water)</li>
-                        <li>Civil Defense Certified Firefighting &amp; Alarm Systems</li>
-                        <li>Advanced Plumbing, Water Pumps &amp; Drainage Infrastructure</li>
-                        <li>High Voltage Electrical Distribution &amp; Substation Panels</li>
-                    </ul>
-                    <a href="/services" class="btn btn-sm btn-outline-warning rounded-pill fw-bold text-dark w-100">Explore MEP Services <i class="fa fa-arrow-right ms-1"></i></a>
-                `;
-            }
-            return `
-                <p class="mb-2">نوفر حلولاً كهروميكانيكية متكاملة (MEP Systems) تشمل: ⚡</p>
-                <ul class="mb-2 ps-3 small">
-                    <li>أنظمة التكييف المركزي والدكت (VRV / Chilled Water)</li>
-                    <li>شبكات مكافحة الحريق والإنذار المبكر</li>
-                    <li>مخططات السباكة والتغذية المائية المتقدمة</li>
-                    <li>تجهيز اللوحات الكهروميكانيكية والمولدات</li>
-                </ul>
-                <a href="/services" class="btn btn-sm btn-outline-warning rounded-pill fw-bold text-dark w-100">استعراض كافة الخدمات <i class="fa fa-arrow-left ms-1"></i></a>
-            `;
-        }
-
-        // Contact / WhatsApp / Phone / Engineer
-        if (q.includes("تواصل") || q.includes("اتصال") || q.includes("واتساب") || q.includes("مهندس") || q.includes("contact") || q.includes("phone") || q.includes("whatsapp") || q.includes("call")) {
-            if (isEn) {
-                return `
-                    <p class="mb-2">You can connect directly with our leading project engineer on WhatsApp: 🟢</p>
-                    <a href="https://wa.me/966112345678" target="_blank" class="btn btn-sm btn-success rounded-pill fw-bold text-white w-100 mb-2"><i class="fa fa-whatsapp me-1"></i> Direct WhatsApp Chat</a>
-                    <p class="mb-0 small text-muted">Or call us directly: +966 11 234 5678</p>
-                `;
-            }
-            return `
-                <p class="mb-2">يمكنك التواصل المباشر مع المهندس المختص عبر الواتساب فوراً: 🟢</p>
-                <a href="https://wa.me/966112345678" target="_blank" class="btn btn-sm btn-success rounded-pill fw-bold text-white w-100 mb-2"><i class="fa fa-whatsapp me-1"></i> محادثة واتساب مباشرة</a>
-                <p class="mb-0 small text-muted">أو عبر الهاتف: 966112345678+</p>
-            `;
-        }
-
-        // Projects / Portfolio / Completed Works
-        if (q.includes("مشروع") || q.includes("معرض") || q.includes("أعمال") || q.includes("projects") || q.includes("portfolio") || q.includes("work")) {
-            if (isEn) {
-                return `
-                    <p class="mb-2">Wasm General Contracting has successfully delivered over 150+ major commercial, residential, and infrastructure landmarks in Saudi Arabia! 🏢</p>
-                    <a href="/projects" class="btn btn-sm btn-dark rounded-pill fw-bold text-white w-100">Browse Projects Portfolio <i class="fa fa-arrow-right ms-1"></i></a>
-                `;
-            }
-            return `
-                <p class="mb-2">نفذت شركة وسم أكثر من 150+ مشروعاً هندسياً وإدارياً وسكنياً وتجارياً بالمملكة! 🏢</p>
-                <a href="/projects" class="btn btn-sm btn-dark rounded-pill fw-bold text-white w-100">تصفح معرض المشاريع المنفذة <i class="fa fa-arrow-left ms-1"></i></a>
-            `;
-        }
-
-        // Default response
-        if (isEn) {
-            return `
-                <p class="mb-2">Thank you for reaching out to Wasm AI Engineering Assistant! 🏗️</p>
-                <p class="mb-2">We stand ready to execute your structural building, MEP systems, and luxury architectural fitouts with uncompromised precision.</p>
-                <div class="d-flex gap-2">
-                    <a href="/quote" class="btn btn-sm btn-warning rounded-pill fw-bold text-dark w-50">Request Quote</a>
-                    <a href="https://wa.me/966112345678" target="_blank" class="btn btn-sm btn-success rounded-pill fw-bold text-white w-50">WhatsApp Us</a>
-                </div>
-            `;
-        }
-        return `
-            <p class="mb-2">شكراً لتواصلك مع مساعد شركة وسم الهيكلي! 🏗️</p>
-            <p class="mb-2">نحن متأهبون لتنفيذ مشاريع المباني الهيكلية، التشطيبات الفاخرة، والحلول الكهروميكانيكية (MEP) بأعلى درجات الدقة.</p>
-            <div class="d-flex gap-2">
-                <a href="/quote" class="btn btn-sm btn-warning rounded-pill fw-bold text-dark w-50">طلب عرض سعر</a>
-                <a href="https://wa.me/966112345678" target="_blank" class="btn btn-sm btn-success rounded-pill fw-bold text-white w-50">واتساب مباشر</a>
-            </div>
-        `;
+        return renderText(botData.welcome || "", botData.contact);
     }
+}
+
+/* ------------------------------------------------------------------
+ * Pure helpers (no DOM) – also used by the keyword-matching check.
+ * ------------------------------------------------------------------ */
+const BOT_PLACEHOLDER_RE = /\{(phone|mobile|whatsapp|email)\}/g;
+
+function escapeHtml(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function splitKeywords(text) {
+    return String(text || "")
+        .split(/[,،\n;]+/)
+        .map(function (k) { return k.trim().toLowerCase(); })
+        .filter(Boolean);
+}
+
+/** First answer (display order) with a keyword contained in the question, else the default answer
+ *  (the first one without keywords), else null. */
+function findReply(replies, query) {
+    const q = String(query || "").toLowerCase();
+    let fallback = null;
+    for (const reply of replies || []) {
+        const kw = reply.kw || splitKeywords(reply.keywords);
+        if (!kw.length) {
+            fallback = fallback || reply;
+        } else if (kw.some(function (k) { return q.includes(k); })) {
+            return reply;
+        }
+    }
+    return fallback;
+}
+
+function pickLang(en, ar, isEn) {
+    return (isEn ? (en || ar) : (ar || en)) || "";
+}
+
+function resolvePlaceholders(text, contact) {
+    return String(text || "").replace(BOT_PLACEHOLDER_RE, function (m, key) { return contact[key] || ""; });
+}
+
+function isSafeUrl(url) {
+    return /^(\/(?!\/)|#|https?:\/\/|mailto:|tel:)/i.test(url);
+}
+
+/** Escaped line with links: web addresses, e-mails and the contact placeholders. */
+function formatInline(line, contact) {
+    const tokens = [];
+    const keep = function (html) { tokens.push(html); return "\u0000" + (tokens.length - 1) + "\u0000"; };
+    let text = String(line).replace(BOT_PLACEHOLDER_RE, function (m, key) {
+        const value = contact[key] || "";
+        if (key === "whatsapp") {
+            const shown = contact.mobile || value.replace(/^https?:\/\/(www\.)?/i, "");
+            return keep(`<a href="${escapeHtml(value)}" target="_blank" rel="noopener noreferrer" class="dir-ltr d-inline-block">${escapeHtml(shown)}</a>`);
+        }
+        if (key === "email") {
+            return keep(`<a href="mailto:${escapeHtml(value)}">${escapeHtml(value)}</a>`);
+        }
+        if (key === "phone" || key === "mobile") {
+            const tel = value.replace(/[^\d+]/g, "");
+            return keep(`<a href="tel:${escapeHtml(tel)}" class="dir-ltr d-inline-block">${escapeHtml(value)}</a>`);
+        }
+        return value;
+    });
+    text = text.replace(/https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]]/gi, function (url) {
+        return keep(`<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url.replace(/^https?:\/\/(www\.)?/i, ""))}</a>`);
+    });
+    text = text.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, function (mail) {
+        return keep(`<a href="mailto:${escapeHtml(mail)}">${escapeHtml(mail)}</a>`);
+    });
+    return escapeHtml(text).replace(/\u0000(\d+)\u0000/g, function (m, i) { return tokens[Number(i)]; });
+}
+
+/** Plain admin text -> HTML: one <p> per line, "•"/"-" lines -> bullet list. */
+function renderText(text, contact) {
+    let html = "";
+    let list = "";
+    const flushList = function () {
+        if (list) { html += `<ul class="mb-2 ps-3 small">${list}</ul>`; list = ""; }
+    };
+    for (const raw of String(text || "").split(/\r?\n/)) {
+        const line = raw.trim();
+        // a line whose contact placeholder is empty is skipped (e.g. no phone number set)
+        const missing = (line.match(BOT_PLACEHOLDER_RE) || []).some(function (m) { return !contact[m.slice(1, -1)]; });
+        if (!line || missing) { flushList(); continue; }
+        const bullet = line.match(/^[•\-*·]\s*(.*)$/);
+        if (bullet) {
+            list += `<li>${formatInline(bullet[1], contact)}</li>`;
+        } else {
+            flushList();
+            html += `<p class="mb-2">${formatInline(line, contact)}</p>`;
+        }
+    }
+    flushList();
+    return html;
+}
+
+function renderReply(reply, isEn, contact) {
+    let html = renderText(pickLang(reply.en, reply.ar, isEn), contact);
+    const url = resolvePlaceholders(reply.url, contact).trim();
+    const label = pickLang(reply.label_en, reply.label_ar, isEn);
+    if (url && label && isSafeUrl(url)) {
+        const external = /^https?:\/\//i.test(url);
+        const target = external ? ' target="_blank" rel="noopener noreferrer"' : "";
+        if (/wa\.me\/|whatsapp\.com/i.test(url)) {
+            html += `<a href="${escapeHtml(url)}"${target} class="btn btn-sm btn-success rounded-pill fw-bold text-white w-100"><i class="fa fa-whatsapp me-1"></i> ${escapeHtml(label)}</a>`;
+        } else {
+            const arrow = isEn ? "fa-arrow-right" : "fa-arrow-left";
+            html += `<a href="${escapeHtml(url)}"${target} class="btn btn-sm btn-warning rounded-pill fw-bold text-dark w-100">${escapeHtml(label)} <i class="fa ${arrow} ms-1"></i></a>`;
+        }
+    }
+    return html;
 }
 
 if (document.readyState === "loading") {

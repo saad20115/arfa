@@ -75,4 +75,4 @@ class TestQuoteAccessToken(TransactionCase):
             'department': 'sales',
         })
         self.assertNotEqual(quote.name, 'New')
-        self.assertIn('REQ-WASM-', quote.name)
+        self.assertTrue(quote.name.startswith('ARFA-RFQ-'))

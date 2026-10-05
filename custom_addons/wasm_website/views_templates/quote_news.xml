@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         6. QUOTE FORM PAGE (texts: wasm.text keys quote.*)
+         ============================================================ -->
+    <template id="quote_page_template" name="Request a Quote - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="quote">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_quote_top"/>
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('quote.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('quote.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('quote.hero.subtitle')"/>
+                </t>
+                <div class="oe_structure" id="oe_structure_quote_middle"/>
+                <section class="py-5 bg-light">
+                    <div class="container">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-10">
+                                <div class="bg-white p-5 rounded-4 shadow-lg wasm-quote-form-container"
+                                     t-att-data-files-label="site_config.tx('quote.files.selected')"
+                                     t-att-data-submitting-label="site_config.tx('quote.form.submitting')">
+                                    <form action="/quote/submit" method="post" enctype="multipart/form-data">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <!-- anti-spam: honeypot (hidden from people) + fill-time stamp -->
+                                        <div class="arfa-hp" aria-hidden="true"><label>Website<input type="text" name="website_url" tabindex="-1" autocomplete="off"/></label></div>
+                                        <input type="hidden" name="form_ts" class="arfa-form-ts" t-att-value="site_config.wasm_form_token()"/>
+                                        <t t-set="form_error" t-value="request.params.get('error')"/>
+                                        <div t-if="form_error" class="alert alert-warning arfa-form-alert" role="alert">
+                                            <t t-if="form_error == 'missing_fields'" t-out="site_config.tx('quote.error.missing_fields')"/>
+                                            <t t-elif="form_error == 'invalid_contact'" t-out="site_config.tx('quote.error.invalid_contact')"/>
+                                            <t t-elif="form_error == 'rate_limit'" t-out="site_config.tx('quote.error.rate_limit')"/>
+                                            <t t-else="" t-out="site_config.tx('quote.error.generic')"/>
+                                        </div>
+                                        <h2 class="h4 fw-bold text-dark border-bottom pb-2 mb-4">
+                                            <i class="fa fa-user me-2 text-warning"></i>
+                                            <span t-out="site_config.tx('quote.client.heading')"/>
+                                        </h2>
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="quote_customer_name" t-out="site_config.tx('quote.form.name')"/>
+                                                <input id="quote_customer_name" autocomplete="name" type="text" name="customer_name" class="form-control wasm-form-control" required="required"/>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold" for="quote_phone" t-out="site_config.tx('quote.form.phone')"/>
+                                                <input id="quote_phone" autocomplete="tel" type="tel" name="phone" class="form-control wasm-form-control" required="required" t-att-placeholder="site_config.tx('quote.form.phone_ph')"/>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label fw-bold" for="quote_email" t-out="site_config.tx('quote.form.email')"/>
+                                                <input id="quote_email" autocomplete="email" type="email" name="email" class="form-control wasm-form-control" required="required"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="quote_customer_type" t-out="site_config.tx('quote.form.client_type')"/>
+                                                <!-- option values = controllers/main.py ALLOWED_CUSTOMER_TYPES -->
+                                                <select id="quote_customer_type" name="customer_type" class="form-select wasm-form-control">
+                                                    <option value="company" selected="selected" t-out="site_config.tx('quote.client_type.company')"/>
+                                                    <option value="individual" t-out="site_config.tx('quote.client_type.individual')"/>
+                                                    <option value="government" t-out="site_config.tx('quote.client_type.government')"/>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="quote_department" t-out="site_config.tx('quote.form.department')"/>
+                                                <!-- option values = controllers/main.py ALLOWED_DEPARTMENTS -->
+                                                <select id="quote_department" name="department" class="form-select wasm-form-control">
+                                                    <option value="sales" t-att-selected="selected_dept == 'sales'" t-out="site_config.tx('quote.dept.sales')"/>
+                                                    <option value="engineering" t-att-selected="selected_dept == 'engineering'" t-out="site_config.tx('quote.dept.engineering')"/>
+                                                    <option value="projects" t-att-selected="selected_dept == 'projects'" t-out="site_config.tx('quote.dept.projects')"/>
+                                                    <option value="hr" t-att-selected="selected_dept == 'hr'" t-out="site_config.tx('quote.dept.hr')"/>
+                                                    <option value="management" t-att-selected="selected_dept == 'management'" t-out="site_config.tx('quote.dept.management')"/>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <h2 class="h4 fw-bold text-dark border-bottom pb-2 mb-4 mt-5">
+                                            <i class="fa fa-building me-2 text-warning"></i>
+                                            <span t-out="site_config.tx('quote.project.heading')"/>
+                                        </h2>
+                                        <div class="row g-3 mb-4">
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold" for="quote_project_type" t-out="site_config.tx('quote.form.project_type')"/>
+                                                <!-- option values = controllers/main.py ALLOWED_PROJECT_TYPES -->
+                                                <select id="quote_project_type" name="project_type" class="form-select wasm-form-control" required="required">
+                                                    <option value="commercial" t-out="site_config.tx('quote.ptype.commercial')"/>
+                                                    <option value="residential" t-out="site_config.tx('quote.ptype.residential')"/>
+                                                    <option value="industrial" t-out="site_config.tx('quote.ptype.industrial')"/>
+                                                    <option value="infrastructure" t-out="site_config.tx('quote.ptype.infrastructure')"/>
+                                                    <option value="renovation" t-out="site_config.tx('quote.ptype.renovation')"/>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold" for="quote_project_location" t-out="site_config.tx('quote.form.location')"/>
+                                                <input id="quote_project_location" autocomplete="address-level2" type="text" name="project_location" class="form-control wasm-form-control" required="required"/>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold" for="quote_service_id" t-out="site_config.tx('quote.form.service')"/>
+                                                <select id="quote_service_id" name="service_id" class="form-select wasm-form-control">
+                                                    <option value="" t-out="site_config.tx('quote.form.service_ph')"/>
+                                                    <t t-foreach="services" t-as="serv">
+                                                        <option t-att-value="serv.id" t-att-selected="serv.id == selected_service_id" t-out="serv.name"/>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold" for="quote_area" t-out="site_config.tx('quote.form.area')"/>
+                                                <input id="quote_area" autocomplete="off" type="number" step="0.1" name="area" class="form-control wasm-form-control"/>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold" for="quote_approx_budget" t-out="site_config.tx('quote.form.budget')"/>
+                                                <input id="quote_approx_budget" autocomplete="off" type="number" step="1000" name="approx_budget" class="form-control wasm-form-control"/>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-bold" for="quote_expected_start_date" t-out="site_config.tx('quote.form.start_date')"/>
+                                                <input id="quote_expected_start_date" autocomplete="off" type="date" name="expected_start_date" class="form-control wasm-form-control"/>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold" for="quote_details" t-out="site_config.tx('quote.form.details')"/>
+                                                <textarea id="quote_details" autocomplete="off" name="details" rows="4" class="form-control wasm-form-control"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <h2 class="h4 fw-bold text-dark border-bottom pb-2 mb-4 mt-5">
+                                            <i class="fa fa-cloud-upload me-2 text-warning"></i>
+                                            <span t-out="site_config.tx('quote.files.heading')"/>
+                                        </h2>
+                                        <div class="mb-4">
+                                            <div class="border border-2 rounded-4 p-4 text-center bg-light" style="border-style:dashed!important;">
+                                                <i class="fa fa-file-text-o fs-1 text-warning mb-2 d-block"></i>
+                                                <label class="btn wasm-btn-choose-file fw-bold rounded-pill px-4 py-2 mb-2" style="cursor:pointer; background: linear-gradient(135deg, #E8A317, #F2B91E) !important; color: #192754 !important; border: 1px solid #FFF8E6 !important; box-shadow: 0 4px 15px rgba(232, 163, 23,0.3) !important;">
+                                                    <span t-out="site_config.tx('quote.files.button')"/>
+                                                    <input type="file" name="attachments" multiple="multiple" class="d-none"/>
+                                                </label>
+                                                <p class="small text-muted mb-0" t-out="site_config.tx('quote.files.hint')"/>
+                                            </div>
+                                            <div class="wasm-file-list-info"></div>
+                                        </div>
+                                        <div class="text-center mt-5">
+                                            <button type="submit" class="btn wasm-btn-submit-gold shadow-lg" style="background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important; color: #192754 !important; font-size: 1.2rem !important; font-weight: 900 !important; padding: 16px 54px !important; border-radius: 50px !important; border: 2px solid #FFF8E6 !important; box-shadow: 0 10px 30px rgba(232, 163, 23, 0.45) !important;">
+                                                <i class="fa fa-paper-plane me-2"></i>
+                                                <span t-out="site_config.tx('quote.form.submit')"/>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <div class="oe_structure" id="oe_structure_quote_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         7. QUOTE THANKS (texts: quote.thanks.*)
+         ============================================================ -->
+    <template id="quote_thanks_template" name="Order Confirmation - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="quote_thanks">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_quote_thanks_top"/>
+                <section class="py-5 my-5 text-center">
+                    <div class="container">
+                        <div class="bg-white p-5 rounded-4 shadow-lg mx-auto border-top border-4 border-warning" style="max-width:700px;">
+                            <div class="fs-1 text-success mb-3"><i class="fa fa-check-circle"></i></div>
+                            <h2 class="fw-bold mb-3" t-out="site_config.tx('quote.thanks.heading')"/>
+                            <p class="text-muted fs-5 mb-4" t-out="site_config.txb('quote.thanks.message')"/>
+                            <div class="bg-light p-4 rounded-3 mb-4" t-if="ref">
+                                <span class="d-block text-muted small" t-out="site_config.tx('quote.thanks.ref_label')"/>
+                                <span class="display-6 fw-bold text-warning" t-out="ref"/>
+                            </div>
+                            <a href="/" class="btn btn-warning rounded-pill px-4 fw-bold text-white" t-out="site_config.tx('quote.thanks.home')"/>
+                        </div>
+                    </div>
+                </section>
+                <div class="oe_structure" id="oe_structure_quote_thanks_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         10. NEWS AND MEDIA PAGE (articles: wasm.news, texts: news.*)
+         ============================================================ -->
+    <template id="news_page_template" name="News &amp; Media - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="news">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <div id="wrap" class="oe_structure oe_empty bg-light">
+                <div class="oe_structure" id="oe_structure_news_top"/>
+
+                <!-- Liquid Animated Fluid Hero Header (Harmonized with Subpages) -->
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('news.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('news.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('news.hero.subtitle')"/>
+                </t>
+
+                <div class="oe_structure" id="oe_structure_news_middle"/>
+
+                <!-- Main News Grid Section: the first 2 articles as large cards, the others as compact cards -->
+                <section class="py-5 bg-light">
+                    <div class="container py-3">
+                        <t t-if="articles">
+                            <div class="row g-4">
+                                <t t-foreach="articles" t-as="art">
+                                    <t t-set="art_title" t-value="art.wasm_title()"/>
+                                    <t t-set="art_img" t-value="art.wasm_image_src()"/>
+                                    <t t-set="art_badge" t-value="art.wasm_badge()"/>
+                                    <t t-set="art_date" t-value="art.wasm_date_label()"/>
+                                    <div t-if="art_index &lt; 2" class="col-lg-6">
+                                        <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-sm wasm-hover-card bg-white">
+                                            <div class="position-relative" style="height: 260px; overflow: hidden;">
+                                                <img t-if="art_img" t-att-src="art_img" t-att-alt="art_title" loading="lazy" decoding="async" width="800" height="520" class="w-100 h-100" style="object-fit: cover;"/>
+                                                <div t-else="" class="w-100 h-100 bg-secondary-subtle d-flex align-items-center justify-content-center text-secondary"><i class="fa fa-newspaper-o fs-1" aria-hidden="true"/></div>
+                                                <div class="position-absolute top-0 start-0 m-3" t-if="art_badge">
+                                                    <span t-attf-class="badge #{art.wasm_badge_class()} px-3 py-2 rounded-pill fw-bold shadow-sm" style="font-size: 0.85rem;" t-out="art_badge"/>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                                                <div>
+                                                    <div class="d-flex align-items-center gap-3 text-muted small mb-2">
+                                                        <span t-if="art_date"><i class="fa fa-calendar text-warning me-1"/> <t t-out="art_date"/></span>
+                                                        <span t-if="art.author"><i class="fa fa-user text-warning me-1"/> <t t-out="art.author"/></span>
+                                                    </div>
+                                                    <h2 class="h4 fw-bold text-dark mb-3" t-out="art_title"/>
+                                                    <p class="text-muted leading-relaxed mb-4 fs-6" t-out="art.wasm_summary()"/>
+                                                </div>
+                                                <div>
+                                                    <a t-att-href="'/news/%s' % art.id" class="btn btn-outline-warning rounded-pill px-4 fw-bold">
+                                                        <t t-out="site_config.tx('news.card.read')"/>
+                                                        <i class="fa fa-arrow-left ms-2"/>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div t-else="" class="col-md-6 col-lg-4">
+                                        <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-sm wasm-hover-card bg-white">
+                                            <div class="position-relative" style="height: 200px; overflow: hidden;">
+                                                <img t-if="art_img" t-att-src="art_img" t-att-alt="art_title" loading="lazy" decoding="async" width="800" height="520" class="w-100 h-100" style="object-fit: cover;"/>
+                                                <div t-else="" class="w-100 h-100 bg-secondary-subtle d-flex align-items-center justify-content-center text-secondary"><i class="fa fa-newspaper-o fs-1" aria-hidden="true"/></div>
+                                                <div class="position-absolute top-0 start-0 m-3" t-if="art_badge">
+                                                    <span t-attf-class="badge #{art.wasm_badge_class()} px-3 py-1 rounded-pill fw-bold small" t-out="art_badge"/>
+                                                </div>
+                                            </div>
+                                            <div class="card-body p-4 d-flex flex-column justify-content-between">
+                                                <div>
+                                                    <div class="text-muted small mb-2" t-if="art_date"><i class="fa fa-calendar text-warning me-1"/> <t t-out="art_date"/></div>
+                                                    <h2 class="h5 fw-bold text-dark mb-2" t-out="art_title"/>
+                                                    <p class="text-muted small leading-relaxed mb-3" t-out="art.wasm_summary()"/>
+                                                </div>
+                                                <a t-att-href="'/news/%s' % art.id" class="text-warning fw-bold text-decoration-none small arfa-tap">
+                                                    <t t-out="site_config.tx('news.card.read')"/>
+                                                    <i class="fa fa-arrow-left ms-1"/>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="text-center text-muted py-5">
+                                <i class="fa fa-newspaper-o fs-1 text-warning mb-3 d-block" aria-hidden="true"/>
+                                <p class="fs-5 mb-0" t-out="site_config.tx('news.empty')"/>
+                            </div>
+                        </t>
+                    </div>
+                </section>
+
+                <div class="oe_structure" id="oe_structure_news_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- NEWS DETAIL PAGE TEMPLATE -->
+    <template id="news_detail_page_template" name="News Detail - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="meta_description_page" t-value="article.wasm_summary()[:300]"/>
+            <t t-set="article_img" t-value="article.wasm_image_src()"/>
+            <t t-set="article_date" t-value="article.wasm_date_label()"/>
+            <div id="wrap" class="oe_structure oe_empty bg-light">
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="article.wasm_badge() or site_config.tx('news.detail.badge')"/>
+                    <t t-set="title_text" t-value="article.wasm_title()"/>
+                    <t t-set="subtitle_text" t-value="article_date and ('%s %s' % (site_config.tx('news.detail.published'), article_date)) or ''"/>
+                </t>
+
+                <section class="py-5 bg-white">
+                    <div class="container py-3">
+                        <div class="row justify-content-center">
+                            <div class="col-lg-10">
+                                <div class="mb-4 rounded-4 overflow-hidden shadow-sm" style="max-height: 480px;" t-if="article_img">
+                                    <img t-att-src="article_img" t-att-alt="article.wasm_title()" decoding="async" class="w-100 h-100" style="object-fit: cover;"/>
+                                </div>
+                                <div class="d-flex align-items-center gap-4 text-muted border-bottom pb-3 mb-4">
+                                    <span t-if="article_date"><i class="fa fa-calendar text-warning me-1"/> <t t-out="article_date"/></span>
+                                    <span t-if="article.author"><i class="fa fa-user text-warning me-1"/> <t t-out="article.author"/></span>
+                                    <span t-if="article.category"><i class="fa fa-tag text-warning me-1"/> <t t-out="article.wasm_category_label()"/></span>
+                                </div>
+                                <div class="content-body fs-5 text-dark lh-lg mb-5">
+                                    <div t-out="article.wasm_content()"/>
+                                </div>
+
+                                <div class="pt-4 border-top">
+                                    <a href="/news" class="btn btn-warning rounded-pill px-5 fw-bold text-dark shadow-sm">
+                                        <i class="fa fa-arrow-right me-2"/>
+                                        <t t-out="site_config.tx('news.detail.back')"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+</odoo>

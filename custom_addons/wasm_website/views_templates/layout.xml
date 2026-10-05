@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         WASM HEAD FONTS - Clean Google Fonts Inclusion
+         ============================================================ -->
+    <template id="wasm_head_fonts" inherit_id="website.layout" name="Wasm Head Fonts">
+        <xpath expr="//head" position="inside">
+            <!-- SEO / AI search (all values come from "وسائط وتكوين الموقع" in the backend).
+                 Description, Open Graph, Twitter cards, canonical and hreflang are produced by Odoo
+                 itself (editable per page with "Optimize SEO"); the defaults are set in wasm_seo_defaults. -->
+            <t t-set="is_en" t-value="request.env.lang and request.env.lang.startswith('en')"/>
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <!-- "Hide from search engines" switch of the site config (staging / pre-launch) -->
+            <meta t-if="site_config.wasm_hide_from_search()" name="robots" content="noindex, nofollow"/>
+            <meta t-elif="not no_index" name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"/>
+            <meta name="author" t-att-content="site_config.brand_name_en or 'ARFA Construction &amp; Specialized Systems'"/>
+            <meta name="theme-color" content="#192754"/>
+            <link rel="alternate" type="text/markdown" title="Company brief for AI assistants (llms.txt)" href="/llms.txt"/>
+            <script type="application/ld+json" t-out="site_config.wasm_jsonld(request.httprequest.url_root, title and title.split(' | ')[0] or None, request.httprequest.path, is_en)"/>
+
+            <link rel="preconnect" href="https://fonts.googleapis.com"/>
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin"/>
+            <!-- Only the weights the stylesheets use (400-800). Alexandria also covers Arabic script,
+                 so the former Tajawal fallback font is no longer downloaded. -->
+            <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+            <style>
+            <![CDATA[
+                header,
+                header#top,
+                header.o_header_standard,
+                header.o_header_affix,
+                header.o_header_is_scrolled,
+                header.o_header_sticky,
+                div.o_header_standard,
+                div.o_header_affix,
+                div.o_header_is_scrolled,
+                .o_header_standard,
+                .o_header_affix,
+                .o_header_is_scrolled,
+                .o_header_sticky,
+                #top_menu_container,
+                #o_main_nav,
+                .o_main_nav,
+                nav.navbar,
+                .navbar,
+                header .navbar,
+                header nav,
+                #wrapwrap > header,
+                #wrapwrap nav,
+                #wrapwrap .navbar {
+                    background: #ffffff !important;
+                    background-color: #ffffff !important;
+                    background-image: none !important;
+                    opacity: 1 !important;
+                    backdrop-filter: none !important;
+                    -webkit-backdrop-filter: none !important;
+                    z-index: 100000 !important;
+                }
+                header#top .navbar,
+                .o_header_standard .navbar,
+                nav.navbar,
+                .navbar,
+                #top_menu_container,
+                #top_menu {
+                    background: #ffffff !important;
+                    background-color: #ffffff !important;
+                    width: 100% !important;
+                    max-width: 100vw !important;
+                    overflow: visible !important;
+                    box-sizing: border-box !important;
+                }
+
+                header#top .container,
+                .o_header_standard .container,
+                #top_menu_container .container {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    padding-left: 15px !important;
+                    padding-right: 15px !important;
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+                    box-sizing: border-box !important;
+                }
+
+                /* Mobile Offcanvas Drawer Solid Background & Styling */
+                #top_menu_collapse_mobile,
+                .offcanvas,
+                .offcanvas-start,
+                .offcanvas-end,
+                .offcanvas-top,
+                .offcanvas-bottom,
+                .offcanvas.show,
+                #top_menu_collapse_mobile.show {
+                    background: #ffffff !important;
+                    background-color: #ffffff !important;
+                    color: #192754 !important;
+                    opacity: 1 !important;
+                    box-shadow: -10px 0 40px rgba(25, 39, 84, 0.25) !important;
+                    z-index: 10000000 !important;
+                    width: 320px !important;
+                    max-width: 88vw !important;
+                    border: none !important;
+                }
+
+                .offcanvas-backdrop,
+                .offcanvas-backdrop.show {
+                    background-color: rgba(25, 39, 84, 0.65) !important;
+                    backdrop-filter: blur(6px) !important;
+                    -webkit-backdrop-filter: blur(6px) !important;
+                    z-index: 9999999 !important;
+                    opacity: 1 !important;
+                }
+
+                #top_menu_collapse_mobile .offcanvas-header,
+                .offcanvas .offcanvas-header {
+                    background: #ffffff !important;
+                    border-bottom: 1px solid #f1f5f9 !important;
+                    padding: 18px 20px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                }
+
+                #top_menu_collapse_mobile .offcanvas-body,
+                .offcanvas .offcanvas-body {
+                    background: #ffffff !important;
+                    background-color: #ffffff !important;
+                    padding: 20px 16px !important;
+                    overflow-y: auto !important;
+                }
+
+                #top_menu_collapse_mobile .top_menu,
+                .offcanvas-body .top_menu {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 8px !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    list-style: none !important;
+                }
+
+                #top_menu_collapse_mobile .top_menu > li,
+                .offcanvas-body .top_menu > li {
+                    border: none !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                }
+
+                #top_menu_collapse_mobile .top_menu > li > a.nav-link,
+                #top_menu_collapse_mobile .top_menu .accordion-button,
+                .offcanvas-body .top_menu > li > a.nav-link,
+                .offcanvas-body .top_menu .accordion-button {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                    padding: 14px 18px !important;
+                    font-size: 0.98rem !important;
+                    font-weight: 700 !important;
+                    color: #22305E !important;
+                    background: #f8fafc !important;
+                    border: 1px solid #f1f5f9 !important;
+                    border-radius: 12px !important;
+                    transition: all 0.2s ease !important;
+                    text-decoration: none !important;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02) !important;
+                }
+
+                #top_menu_collapse_mobile .top_menu > li > a.nav-link.active,
+                .offcanvas-body .top_menu > li > a.nav-link.active {
+                    background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important;
+                    color: #192754 !important;
+                    border: none !important;
+                    box-shadow: 0 4px 14px rgba(232, 163, 23, 0.3) !important;
+                }
+
+                #top_menu_collapse_mobile .top_menu > li > a.nav-link:hover,
+                #top_menu_collapse_mobile .top_menu .accordion-button:hover,
+                .offcanvas-body .top_menu > li > a.nav-link:hover {
+                    background: #FFF8E6 !important;
+                    color: #9A6A05 !important;
+                    border-color: #F7E2A6 !important;
+                }
+
+                #top_menu_collapse_mobile .btn_cta,
+                .offcanvas-body .btn_cta,
+                #top_menu_collapse_mobile .btn-primary,
+                .offcanvas-body .btn-primary {
+                    background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important;
+                    color: #192754 !important;
+                    font-weight: 800 !important;
+                    font-size: 1rem !important;
+                    padding: 14px 20px !important;
+                    border-radius: 50px !important;
+                    border: none !important;
+                    box-shadow: 0 6px 20px rgba(232, 163, 23, 0.35) !important;
+                    text-transform: uppercase !important;
+                    width: 100% !important;
+                    margin-top: 16px !important;
+                }
+
+                /* Mobile Hero Transparent Box & Horizontal Snap Slider Override */
+                @media (max-width: 991.98px) {
+                    .wasm-hero-banner {
+                        padding-top: 10px !important;
+                        padding-bottom: 15px !important;
+                        min-height: auto !important;
+                    }
+                    .wasm-hero-text-block,
+                    .wasm-glass-card,
+                    div.wasm-hero-text-block {
+                        min-height: auto !important;
+                        height: auto !important;
+                        max-height: none !important;
+                        padding: 6px 2px !important;
+                        margin: 0 auto 8px auto !important;
+                        border-radius: 0 !important;
+                        background: transparent !important;
+                        background-color: transparent !important;
+                        backdrop-filter: none !important;
+                        -webkit-backdrop-filter: none !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    .wasm-hero-title-main {
+                        font-size: 1.45rem !important;
+                        line-height: 1.25 !important;
+                        margin-bottom: 4px !important;
+                        display: block !important;
+                        color: #ffffff !important;
+                        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.95) !important;
+                    }
+                    .wasm-hero-subtitle {
+                        font-size: 0.78rem !important;
+                        padding: 4px 12px !important;
+                        margin-top: 4px !important;
+                        display: inline-block !important;
+                        background: linear-gradient(135deg, #F2B91E 0%, #E8A317 100%) !important;
+                        color: #192754 !important;
+                        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+                    }
+                    .wasm-hero-lead,
+                    .wasm-typewriter-target {
+                        font-size: 0.95rem !important;
+                        margin-top: 12px !important;
+                        line-height: 1.5 !important;
+                        color: #ffffff !important;
+                        font-weight: 700 !important;
+                        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95) !important;
+                        padding-left: 24px !important;
+                        padding-right: 24px !important;
+                        box-sizing: border-box !important;
+                        width: 100% !important;
+                        text-align: center !important;
+                    }
+                    .wasm-typewriter-content {
+                        color: #ffffff !important;
+                        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.95) !important;
+                    }
+
+                    /* Vertical Stacked & Centered 3 CTA Action Buttons on Mobile */
+                    .wasm-hero-action-block {
+                        margin-top: 20px !important;
+                        width: 100% !important;
+                        display: flex !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        text-align: center !important;
+                    }
+
+                    .wasm-hero-action-block .d-flex,
+                    .wasm-hero-action-block div.d-flex,
+                    .wasm-hero-action-block .wasm-hero-btn-wrapper {
+                        display: flex !important;
+                        flex-direction: column !important;
+                        flex-wrap: nowrap !important;
+                        overflow-x: visible !important;
+                        gap: 12px !important;
+                        padding: 0 20px !important;
+                        width: 100% !important;
+                        max-width: 360px !important;
+                        margin: 0 auto !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                    }
+
+                    .wasm-hero-btn,
+                    .wasm-hero-action-block a.btn {
+                        flex: 0 0 auto !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: 340px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        padding: 13px 20px !important;
+                        font-size: 0.95rem !important;
+                        font-weight: 800 !important;
+                        border-radius: 50px !important;
+                        margin: 0 auto !important;
+                        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45) !important;
+                        text-align: center !important;
+                        white-space: nowrap !important;
+                    }
+
+                    .wasm-hero-action-block a.btn:nth-child(1),
+                    .wasm-hero-btn:nth-child(1),
+                    .wasm-hero-action-block a.btn:nth-child(2),
+                    .wasm-hero-btn:nth-child(2),
+                    .wasm-hero-action-block a.btn:nth-child(3),
+                    .wasm-hero-btn:nth-child(3) {
+                        display: flex !important;
+                        width: 100% !important;
+                        max-width: 340px !important;
+                    }
+
+                    /* Horizontal Snap Slider for 3 Feature Pillar Cards on Mobile */
+                    .wasm-hero-pillars-section {
+                        width: 100% !important;
+                        overflow: hidden !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        padding-top: 10px !important;
+                        padding-bottom: 20px !important;
+                    }
+
+                    .wasm-hero-pillars-section .row {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        flex-wrap: nowrap !important;
+                        overflow-x: auto !important;
+                        scroll-snap-type: x mandatory !important;
+                        scroll-behavior: smooth !important;
+                        -webkit-overflow-scrolling: touch !important;
+                        gap: 16px !important;
+                        padding: 10px 16px 25px 16px !important;
+                        margin: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        justify-content: flex-start !important;
+                        -ms-overflow-style: none !important;
+                        scrollbar-width: none !important;
+                    }
+
+                    .wasm-hero-pillars-section .row::-webkit-scrollbar {
+                        display: none !important;
+                    }
+
+                    .wasm-hero-pillars-section .row > div[class*="col-"] {
+                        flex: 0 0 85vw !important;
+                        min-width: 85vw !important;
+                        max-width: 85vw !important;
+                        scroll-snap-align: center !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+
+                    .wasm-hero-pillars-section .wasm-pillar-card {
+                        height: 100% !important;
+                        border-radius: 20px !important;
+                        box-shadow: 0 10px 30px rgba(25, 39, 84, 0.15) !important;
+                        border: 1px solid #e2e8f0 !important;
+                    }
+                }
+            ]]>
+            </style>
+        </xpath>
+    </template>
+
+    <!-- Per-page <title>, description and Open Graph/Twitter titles (computed in <head>:
+         t-set values from a page body do not reach <head> in Odoo 19). Anything typed in
+         "Optimize SEO" for a page still takes priority. -->
+    <template id="wasm_seo_defaults" inherit_id="website.layout" name="ARFA SEO defaults">
+        <xpath expr="//head/*[1]" position="before">
+            <t t-set="arfa_is_en" t-value="request.env.lang and request.env.lang.startswith('en') or False"/>
+            <t t-set="arfa_meta" t-value="request.env['wasm.site.config'].sudo().get_config().wasm_page_meta(request.httprequest.path, arfa_is_en, main_object=main_object, project=project, article=article, service=service)"/>
+            <t t-if="arfa_meta.get('title')" t-set="title" t-value="arfa_meta['title']"/>
+            <!-- Odoo only fills seo_object inside its own "no title" branch; without it there are no Open Graph tags -->
+            <t t-set="seo_object" t-value="seo_object or main_object"/>
+            <t t-set="website_meta_description" t-value="website_meta_description or arfa_meta.get('description')"/>
+        </xpath>
+        <xpath expr="//t[@t-set='meta_description']" position="after">
+            <t t-set="nothing" t-value="request.env['wasm.site.config'].sudo().wasm_patch_social_meta(website_meta, arfa_meta.get('title') and title, meta_description, arfa_is_en, request.httprequest.url_root, image=arfa_meta.get('image'))"/>
+        </xpath>
+    </template>
+
+    <!-- Header logo is above the fold: no lazy-loading for visitors (Odoo adds loading="lazy" to every
+         <img> during post-processing; "data-no-post-process" skips that step for this one image). -->
+    <template id="wasm_header_logo_eager" inherit_id="website.option_header_brand_logo" name="ARFA header logo (eager)">
+        <xpath expr="//span[@t-field='website.logo']" position="attributes">
+            <attribute name="t-options">dict(base_options if editable else dict(base_options, width=95, height=40), **{'data-no-post-process': True})</attribute>
+        </xpath>
+    </template>
+
+    <!-- ============================================================
+         WASM FOOTER - every text / link / logo comes from the backend
+         (texts "layout.footer.*", items "footer_link" / "footer_dept",
+         contact data + social accounts from the site config)
+         ============================================================ -->
+    <template id="wasm_footer_override" inherit_id="website.footer_custom"
+              name="Wasm Footer Override" priority="99">
+        <xpath expr="//div[@id='footer']" position="replace">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="footer_social" t-value="site_config.wasm_social_links()"/>
+            <t t-set="footer_address" t-value="site_config.wasm_t('contact_address')"/>
+            <div id="footer" class="oe_structure oe_structure_solo wasm-footer"
+                 t-ignore="true" t-if="not no_footer">
+                <div class="container py-5">
+                    <div class="row g-5">
+                        <div class="col-lg-4">
+                            <!-- An uploaded logo is shown as-is: "content: normal" cancels the stylesheet rule
+                                 that swaps the default logo for its dark-background variant. -->
+                            <img t-att-src="site_config.wasm_img_url('footer_logo')" t-att-alt="site_config.tx('layout.footer.logo_alt')"
+                                 class="wasm-footer-logo" loading="lazy" decoding="async" width="175" height="96"
+                                 t-att-style="site_config.footer_logo and 'content: normal' or None"/>
+                            <p class="wasm-footer-desc" t-if="site_config.tx('layout.footer.desc')" t-out="site_config.txb('layout.footer.desc')"/>
+                            <div class="d-flex gap-2 mt-3" t-if="footer_social">
+                                <t t-foreach="[('x', 'fa-twitter', 'X'), ('linkedin', 'fa-linkedin', 'LinkedIn'), ('instagram', 'fa-instagram', 'Instagram'), ('facebook', 'fa-facebook', 'Facebook'), ('youtube', 'fa-youtube-play', 'YouTube'), ('tiktok', 'fa-tiktok', 'TikTok'), ('snapchat', 'fa-snapchat-ghost', 'Snapchat'), ('whatsapp', 'fa-whatsapp', 'WhatsApp')]" t-as="net">
+                                    <a t-if="footer_social.get(net[0])" t-att-href="footer_social[net[0]]" class="wasm-social-icon" target="_blank" rel="noopener noreferrer" t-att-aria-label="net[2]"><i t-attf-class="fa #{net[1]}"></i></a>
+                                </t>
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-4">
+                            <h2 class="h5 wasm-footer-title" t-out="site_config.tx('layout.footer.links_title')"/>
+                            <t t-foreach="site_config.items('footer_link')" t-as="link">
+                                <a t-att-href="link.link_url or '#'" class="wasm-footer-link" t-out="link.t('title')"/>
+                            </t>
+                        </div>
+                        <div class="col-lg-3 col-md-4">
+                            <h2 class="h5 wasm-footer-title" t-out="site_config.tx('layout.footer.depts_title')"/>
+                            <t t-foreach="site_config.items('footer_dept')" t-as="link">
+                                <a t-att-href="link.link_url or '#'" class="wasm-footer-link" t-out="link.t('title')"/>
+                            </t>
+                        </div>
+                        <div class="col-lg-3 col-md-4">
+                            <h2 class="h5 wasm-footer-title" t-out="site_config.tx('layout.footer.contact_title')"/>
+                            <p class="wasm-footer-contact" t-if="footer_address"><i class="fa fa-map-marker wasm-footer-icon"></i><span t-out="footer_address"/></p>
+                            <p class="wasm-footer-contact" t-if="site_config.contact_phone"><i class="fa fa-phone wasm-footer-icon"></i><span class="dir-ltr" t-out="site_config.contact_phone"/></p>
+                            <p class="wasm-footer-contact" t-if="site_config.contact_email"><i class="fa fa-envelope wasm-footer-icon"></i><a t-att-href="'mailto:' + site_config.contact_email" class="text-dark text-decoration-none fw-semibold" t-out="site_config.contact_email"/></p>
+                            <a href="/quote" class="btn btn-warning rounded-pill fw-bold text-white mt-3 px-4 py-2">
+                                <i class="fa fa-paper-plane me-1"></i> <span t-out="site_config.tx('layout.footer.quote_btn')"/>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="wasm-footer-bottom">
+                    <div class="container wasm-footer-bottom-row">
+                        <span t-out="site_config.tx('layout.footer.copyright')"/>
+                        <button type="button" class="arfa-footer-totop" t-att-aria-label="site_config.tx('layout.footer.totop')">
+                            <span t-out="site_config.tx('layout.footer.totop')"/>
+                            <span class="arfa-footer-totop-icon" aria-hidden="true"><i class="fa fa-arrow-up"></i></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+    <!-- ============================================================
+         COLLAPSIBLE FLOATING SPEED-DIAL ACTION MENU (Icon Only)
+         + AI assistant chat (texts "layout.float.*" / "bot.*",
+         items "bot_chip" / "bot_reply"; replies are read by wasm_ai_bot.js
+         from the #arfa-bot-data JSON below)
+         ============================================================ -->
+    <template id="wasm_floating_btn" inherit_id="website.layout" name="Wasm Floating CTA">
+        <xpath expr="//div[@id='wrapwrap']" position="inside">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="float_whatsapp" t-value="site_config.wasm_social_links().get('whatsapp')"/>
+
+            <!-- Collapsible Speed-Dial Action Container -->
+            <div id="wasmFloatingContainer" class="wasm-floating-speed-dial" t-att-data-totop-label="site_config.tx('layout.totop_aria')">
+                <!-- Stacked Action Items (Collapsed by default, Icon Only) -->
+                <div id="wasmFloatingStack" class="wasm-floating-stack wasm-collapsed">
+                    <!-- 1. AI Assistant Bot Button -->
+                    <button id="wasmAiBotToggle" class="wasm-floating-ai-btn" type="button" t-att-title="site_config.tx('layout.float.bot_title')">
+                        <i class="fa fa-android fs-4"></i>
+                    </button>
+
+                    <!-- 2. WhatsApp Button (only when a mobile / WhatsApp number is set) -->
+                    <a t-if="float_whatsapp" t-att-href="float_whatsapp" target="_blank" rel="noopener noreferrer" class="wasm-floating-whatsapp-btn" t-att-title="site_config.tx('layout.float.whatsapp_title')">
+                        <i class="fa fa-whatsapp fs-4"></i>
+                    </a>
+
+                    <!-- 3. Quote Request Button -->
+                    <a href="/quote" class="wasm-floating-quote-btn" t-att-title="site_config.tx('layout.float.quote_title')">
+                        <i class="fa fa-paper-plane fs-5"></i>
+                    </a>
+                </div>
+
+                <!-- Master Toggle Button (Primary Floating Trigger) -->
+                <button id="wasmFloatingMasterToggle" class="wasm-floating-master-btn" type="button" t-att-title="site_config.tx('layout.float.toggle_title')" t-att-aria-label="site_config.tx('layout.float.toggle_aria')">
+                    <div class="wasm-master-icon">
+                        <i class="fa fa-comments fs-4 wasm-icon-open"></i>
+                        <i class="fa fa-times fs-4 wasm-icon-close d-none"></i>
+                    </div>
+                    <span class="wasm-pulse-ring"></span>
+                </button>
+            </div>
+
+            <!-- AI Assistant Chat Window Modal -->
+            <div id="wasmAiChatWindow" class="wasm-ai-chat-window d-none">
+                <div class="wasm-ai-chat-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="wasm-ai-avatar">
+                            <i class="fa fa-android text-white fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold text-white" t-out="site_config.tx('bot.header.title')"/>
+                            <small class="text-white-50"><i class="fa fa-circle text-success me-1" style="font-size: 8px;"></i><span t-out="site_config.tx('bot.header.status')"/></small>
+                        </div>
+                    </div>
+                    <button id="wasmAiChatClose" type="button" class="btn-close btn-close-white shadow-none" t-att-aria-label="site_config.tx('bot.close_aria')"></button>
+                </div>
+                <div id="wasmAiChatBody" class="wasm-ai-chat-body">
+                    <div class="wasm-ai-message bot">
+                        <div class="wasm-ai-msg-bubble">
+                            <p class="mb-2" t-out="site_config.txb('bot.welcome')"/>
+                            <t t-set="bot_chips" t-value="site_config.items('bot_chip')"/>
+                            <div class="wasm-ai-chips" t-if="bot_chips">
+                                <t t-foreach="bot_chips" t-as="chip">
+                                    <button class="wasm-chip-btn" t-att-data-query="chip.t('desc') or chip.t('title')"><t t-out="chip.t('title')"/></button>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="wasm-ai-chat-footer">
+                    <div class="input-group">
+                        <input id="wasmAiInput" type="text" class="form-control border-0 shadow-none bg-light" t-att-placeholder="site_config.tx('bot.input.placeholder')" t-att-aria-label="site_config.tx('bot.input.aria')"/>
+                        <button id="wasmAiSend" class="btn btn-warning fw-bold text-dark px-3" type="button" t-att-aria-label="site_config.tx('bot.send_aria')">
+                            <i class="fa fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Data for wasm_ai_bot.js: the answers (both languages, the script picks the visitor
+                     language) and the contact data used by the {phone} {mobile} {whatsapp} {email} placeholders. -->
+                <script type="application/json" id="arfa-bot-data" t-out="site_config._wasm_json_markup({
+                    'welcome': site_config.tx('bot.welcome'),
+                    'contact': {
+                        'phone': site_config.contact_phone or '',
+                        'mobile': site_config.contact_phone_secondary or '',
+                        'whatsapp': float_whatsapp or '',
+                        'email': site_config.contact_email or '',
+                    },
+                    'replies': [{
+                        'keywords': ','.join([k for k in (r.subtitle_en, r.subtitle_ar) if k]),
+                        'en': r.desc_en or '',
+                        'ar': r.desc_ar or '',
+                        'url': r.link_url or '',
+                        'label_en': r.link_label_en or '',
+                        'label_ar': r.link_label_ar or '',
+                    } for r in site_config.items('bot_reply')],
+                })"/>
+            </div>
+        </xpath>
+    </template>
+</odoo>

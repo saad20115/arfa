@@ -1,5 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_wasm_quote_request_user,wasm.quote.request.user,model_wasm_quote_request,wasm_website.group_wasm_user,1,1,1,1
+access_wasm_quote_request_user,wasm.quote.request.user,model_wasm_quote_request,wasm_website.group_wasm_user,1,1,1,0
 access_wasm_quote_request_manager,wasm.quote.request.manager,model_wasm_quote_request,wasm_website.group_wasm_manager,1,1,1,1
 access_wasm_project_internal,wasm.project.internal,model_wasm_project,base.group_user,1,0,0,0
 access_wasm_project_user,wasm.project.user,model_wasm_project,wasm_website.group_wasm_user,1,1,1,1
@@ -22,3 +22,9 @@ access_wasm_news_manager,wasm.news.manager,model_wasm_news,wasm_website.group_wa
 access_wasm_gallery_image_internal,wasm.gallery.image.internal,model_wasm_gallery_image,base.group_user,1,0,0,0
 access_wasm_gallery_image_user,wasm.gallery.image.user,model_wasm_gallery_image,wasm_website.group_wasm_user,1,1,1,1
 access_wasm_gallery_image_manager,wasm.gallery.image.manager,model_wasm_gallery_image,wasm_website.group_wasm_manager,1,1,1,1
+access_wasm_text_internal,wasm.text.internal,model_wasm_text,base.group_user,1,0,0,0
+access_wasm_text_user,wasm.text.user,model_wasm_text,wasm_website.group_wasm_user,1,1,1,1
+access_wasm_text_manager,wasm.text.manager,model_wasm_text,wasm_website.group_wasm_manager,1,1,1,1
+access_wasm_content_item_internal,wasm.content.item.internal,model_wasm_content_item,base.group_user,1,0,0,0
+access_wasm_content_item_user,wasm.content.item.user,model_wasm_content_item,wasm_website.group_wasm_user,1,1,1,1
+access_wasm_content_item_manager,wasm.content.item.manager,model_wasm_content_item,wasm_website.group_wasm_manager,1,1,1,1

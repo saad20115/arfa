@@ -76,6 +76,12 @@
                 var clone = originals[i].cloneNode(true);
                 clone.classList.add('wasm-slider-clone');
                 clone.setAttribute('aria-hidden', 'true');
+                // decorative duplicates: keep them out of the tab order / accessibility tree
+                clone.setAttribute('inert', '');
+                clone.querySelectorAll('a, button, input, select, textarea, iframe, [tabindex]').forEach(function (f) {
+                    f.setAttribute('tabindex', '-1');
+                });
+                if (clone.matches('a, button, [tabindex]')) clone.setAttribute('tabindex', '-1');
                 track.appendChild(clone);
             }
         }

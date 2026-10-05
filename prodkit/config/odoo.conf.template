@@ -1,0 +1,42 @@
+; =============================================================================
+; ARFA - Odoo 19 production config. TEMPLATE: install.sh renders it to
+; runtime/odoo.conf from .env (all ARFA placeholders are replaced). Edit here, then run
+; install.sh again (idempotent) or update.sh --render-config to apply.
+; =============================================================================
+[options]
+addons_path = /mnt/extra-addons
+data_dir = /var/lib/odoo
+admin_passwd = @ARFA_ADMIN_PASSWD@
+
+; ---- database: own PostgreSQL container (service "db" on arfa_prod_net) ----
+db_host = db
+db_port = 5432
+db_user = @ARFA_DB_USER@
+db_password = @ARFA_DB_PASSWORD@
+db_name = @ARFA_DB_NAME@
+dbfilter = ^@ARFA_DB_NAME@$
+list_db = False
+db_maxconn = 32
+db_template = template0
+with_demo = False
+
+; ---- http: behind nginx ----
+proxy_mode = True
+http_port = 8069
+gevent_port = 8072
+
+; ---- processes / limits ----
+workers = @ARFA_WORKERS@
+max_cron_threads = 1
+; 1.5 GiB soft (worker recycled after the request), 2.5 GiB hard (request killed)
+limit_memory_soft = 1610612736
+limit_memory_hard = 2684354560
+limit_time_cpu = 300
+limit_time_real = 600
+limit_time_real_cron = 1800
+limit_request = 65536
+
+; ---- logging: stdout (docker json-file driver rotates it) ----
+logfile =
+log_level = info
+log_handler = :INFO

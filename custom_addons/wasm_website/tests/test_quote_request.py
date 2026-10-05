@@ -36,7 +36,7 @@ class TestWasmQuoteRequest(TransactionCase):
         quote = self._create_quote()
         self.assertTrue(quote.name)
         self.assertNotEqual(quote.name, 'جديد')
-        self.assertIn('REQ-WASM-', quote.name)
+        self.assertTrue(quote.name.startswith('ARFA-RFQ-'))
 
     def test_default_state_is_new(self):
         """Test that new quotes start in 'new' state."""

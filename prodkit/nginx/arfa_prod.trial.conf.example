@@ -1,0 +1,145 @@
+# ARFA-PRODKIT managed file - DO NOT EDIT BY HAND (re-run enable_trial_nginx.sh / enable_domain.sh)
+# ARFA website (Odoo 19) - layout: trial - target: host - EXAMPLE (generic host nginx; the scripts render the real file)
+# Declares only: upstream arfa_prod_odoo, arfa_prod_odoo_chat; map $arfa_prod_conn_upgrade;
+#                limit_req zones arfa_prod_forms, arfa_prod_login; ssl cache arfa_prod_ssl.
+# Never uses default_server. Odoo listens on 127.0.0.1 only; this file is the only public entry.
+
+upstream arfa_prod_odoo {
+    server 127.0.0.1:18069;
+}
+upstream arfa_prod_odoo_chat {
+    server 127.0.0.1:18072;
+}
+map $http_upgrade $arfa_prod_conn_upgrade {
+    default upgrade;
+    ''      close;
+}
+limit_req_zone $binary_remote_addr zone=arfa_prod_forms:10m rate=6r/m;
+limit_req_zone $binary_remote_addr zone=arfa_prod_login:10m rate=12r/m;
+
+# ---------------- Phase 1: trial on http://SERVER_IP:8090 (noindex, basic-auth) ----------------
+server {
+    listen 8090;
+    server_name _;   # unique port -> no other vhost is involved; NOT default_server
+    access_log /var/log/nginx/arfa_prod.access.log;
+    error_log /var/log/nginx/arfa_prod.error.log warn;
+    auth_basic "ARFA preview";
+    auth_basic_user_file /etc/nginx/arfa_prod.htpasswd;
+    server_tokens off;
+    proxy_hide_header X-Powered-By;
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header X-Content-Type-Options;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+    add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet" always;  # trial: hidden from search engines
+
+    client_max_body_size 50m;
+    proxy_connect_timeout 720s;
+    proxy_send_timeout 720s;
+    proxy_read_timeout 720s;
+    proxy_buffers 16 64k;
+    proxy_buffer_size 128k;
+    proxy_redirect off;
+    limit_req_status 429;
+
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript text/markdown application/javascript application/json application/xml application/rss+xml image/svg+xml;
+
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Authorization "";  # basic-auth credentials stay at nginx
+
+    location = /arfa-nginx-health {
+        auth_basic off;
+        access_log off;
+        allow 127.0.0.1;
+        allow ::1;
+        deny all;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    # ---- never public: DB manager, server info, external RPC APIs ----
+    location ^~ /web/database { return 404; }
+    location ^~ /website/info { return 404; }
+    location ^~ /xmlrpc       { return 403; }
+    location ^~ /jsonrpc      { return 403; }
+    location ^~ /json/        { return 403; }   # Odoo 19 JSON-2 API
+    location = /doc           { return 404; }
+    location ^~ /doc/         { return 404; }
+
+    # ---- rate-limited public forms (per client IP) ----
+    location = /quote/submit {
+        limit_req zone=arfa_prod_forms burst=5 nodelay;
+        client_max_body_size 50m;
+        proxy_pass http://arfa_prod_odoo;
+    }
+    location = /contactus/submit {
+        limit_req zone=arfa_prod_forms burst=5 nodelay;
+        proxy_pass http://arfa_prod_odoo;
+    }
+    location = /contact/submit {
+        limit_req zone=arfa_prod_forms burst=5 nodelay;
+        proxy_pass http://arfa_prod_odoo;
+    }
+    location = /web/login {
+        limit_req zone=arfa_prod_login burst=10 nodelay;
+        proxy_pass http://arfa_prod_odoo;
+    }
+    location = /web/session/authenticate {
+        limit_req zone=arfa_prod_login burst=10 nodelay;
+        proxy_pass http://arfa_prod_odoo;
+    }
+    location ^~ /web/reset_password {
+        limit_req zone=arfa_prod_login burst=5 nodelay;
+        proxy_pass http://arfa_prod_odoo;
+    }
+
+    # ---- live chat / bus (gevent) ----
+    location /websocket {
+        proxy_pass http://arfa_prod_odoo_chat;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $arfa_prod_conn_upgrade;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Host $http_host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Authorization "";  # basic-auth credentials stay at nginx
+    }
+
+    # ---- backend + editor: large uploads (admin videos). Odoo itself caps a request at 128 MiB ----
+    location ^~ /web/ {
+        client_max_body_size 200m;
+        proxy_pass http://arfa_prod_odoo;   # /web/assets/* keep Odoo's own long-cache headers
+    }
+    location ^~ /html_editor/ {
+        client_max_body_size 200m;
+        proxy_pass http://arfa_prod_odoo;
+    }
+    location ^~ /web_editor/ {
+        client_max_body_size 200m;
+        proxy_pass http://arfa_prod_odoo;
+    }
+
+    # trial: block every crawler regardless of what Odoo serves
+    location = /robots.txt {
+        auth_basic off;
+        default_type text/plain;
+        return 200 "User-agent: *\nDisallow: /\n";
+    }
+
+    location / {
+        proxy_pass http://arfa_prod_odoo;   # /wasm/* image & video routes: Odoo cache headers pass through
+    }
+}

@@ -62,9 +62,10 @@
                         </page>
                         <page string="صور المشروع حسب الأقسام (فلاتر المعرض)" name="gallery_categorized">
                             <field name="gallery_image_ids" nolabel="1" context="{'default_project_id': id}">
-                                <list editable="bottom">
+                                <list>
                                     <field name="sequence" widget="handle"/>
                                     <field name="image" widget="image" options="{'size': [90, 60]}"/>
+                                    <field name="media_type" string="النوع"/>
                                     <field name="name" string="عنوان الصورة (مثال: الدور الأرضي - الاستقبال)"/>
                                     <field name="category" string="القسم"/>
                                     <field name="active" widget="boolean_toggle"/>
@@ -72,7 +73,8 @@
                             </field>
                         </page>
                         <page string="معرض صور وفيديوهات المشروع" name="gallery">
-                            <field name="attachment_ids" widget="many2many_binary" string="رفع صور وفيديوهات إضافية للمشروع"/>
+                            <field name="attachment_ids" widget="many2many_binary" string="رفع صور إضافية للمشروع"/>
+                            <div class="text-muted small mt-2">لإضافة فيديو للمشروع استخدم تبويب صور المشروع حسب الأقسام (اختر النوع: فيديو) أو حقل رابط الفيديو.</div>
                         </page>
                     </notebook>
                 </sheet>

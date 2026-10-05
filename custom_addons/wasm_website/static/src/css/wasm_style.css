@@ -1024,7 +1024,7 @@ body.rtl .wasm-section-title.text-start::after {
 
 /* ===================== ABOUT VISUAL ===================== */
 .wasm-about-visual {
-    background: url('/wasm_website/static/src/img/about_hero.png') no-repeat center center / cover;
+    background: #e9ecf4;
     min-height: 380px;
     border-radius: var(--wasm-radius);
     position: relative;
@@ -2806,7 +2806,7 @@ html[dir="rtl"] .arfa-totop { right: auto; left: 24px; }
 #wrapwrap .arfa-pd-pager .arfa-pd-pager-all { grid-column: 2 !important; grid-row: 1 !important; }
 #wrapwrap .arfa-pd-pager .arfa-pd-next { grid-column: 3 !important; grid-row: 1 !important; text-align: end; align-items: flex-end; }
 /* Facts card: no big empty gap when only a few facts are filled */
-.arfa-pd-cover { min-height: 400px; }
+@media (min-width: 992px) { .arfa-pd-cover { min-height: 400px; } }
 .arfa-pd-facts-cta { margin-top: 18px; }
 
 /* Additional project photos (below the collapsible sections) */
@@ -3102,3 +3102,296 @@ html.arfa-anim .wasm-section-title.arfa-reveal.is-in::after { transform: scaleX(
 /* anti-spam honeypot: off-screen for people, still in the form for bots */
 .arfa-hp { position: absolute !important; left: -10000px !important; top: auto !important; width: 1px; height: 1px; overflow: hidden; }
 .arfa-form-alert { border-radius: 12px; border: 1px solid rgba(232,163,23,.45); background: #FFF8E6; color: var(--arfa-navy); font-weight: 600; }
+
+
+/* =====================================================================
+   Performance / mobile / accessibility fixes (v19 production pass)
+   ===================================================================== */
+/* Hero video: the default video and poster files are encoded with exactly this colour grading
+   (brightness 1.05, contrast 1.1, saturate 1.15), so the per-frame CSS filter is skipped for them. */
+.wasm-hero-bg-video.wasm-hero-bg-video--baked { filter: none !important; }
+@media (prefers-reduced-motion: reduce) {
+    .wasm-typewriter-cursor { animation: none !important; }
+}
+
+/* Typewriter: the full sentence stays in the paragraph (final height from the start, no layout
+   shift); the words not typed yet are hidden and the cursor is the end border of the typed part
+   (see wasm_typewriter.js). */
+.wasm-typewriter-on > .wasm-typewriter-rest { visibility: hidden !important; }
+.wasm-typewriter-on > .wasm-typewriter-caret {
+    border-inline-end: 3px solid #F2B91E;
+    padding-inline-end: 3px;
+    animation: wasmCaretBlink 0.75s infinite;
+}
+@keyframes wasmCaretBlink { 0%, 100% { border-color: #F2B91E; } 50% { border-color: transparent; } }
+@media (prefers-reduced-motion: reduce) { .wasm-typewriter-on > .wasm-typewriter-caret { animation: none; border-color: transparent; } }
+
+/* Page hero badge: may wrap on narrow screens instead of overflowing */
+.wasm-fluid-hero-content .badge,
+.wasm-hero-badge {
+    white-space: normal !important;
+    max-width: 100%;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+/* Bootstrap .g-5 rows (3rem gutter) stick out of the 12px container padding on phones:
+   keep the vertical rhythm, use the 1.5rem horizontal gutter below 992px. */
+@media (max-width: 991.98px) {
+    .row.g-5 { --bs-gutter-x: 1.5rem; }
+}
+
+/* Tap targets >= 24px */
+.wasm-pillar-link { min-height: 24px; padding-block: 2px; }
+.arfa-pd-crumbs a { display: inline-flex; align-items: center; min-height: 24px; }
+#wrap a.arfa-tap { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; }
+#wrap .wasm-hover-card a.text-decoration-none:has(> h2, > h3) { display: flow-root; min-height: 24px; }
+
+/* Project cards: the meta row (area / client) wraps instead of overflowing */
+.arfa-card-meta > span { min-width: 0; }
+
+/* "Explore other services" chips: full names, wrapped */
+.arfa-chip-label { min-width: 0; white-space: normal; text-align: start; overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto; }
+@media (max-width: 575.98px) { .wasm-site-wrapper .btn:has(> .arfa-chip-label) { padding-left: .6rem; padding-right: .6rem; gap: .35rem !important; } }
+
+/* Floating action buttons on phones: keep the footer copyright readable and get out of the way
+   while the visitor types in a form */
+@media (max-width: 767.98px) {
+    .wasm-footer-bottom,
+    .wasm-footer .wasm-footer-bottom { padding-bottom: 84px !important; }
+    body:has(form input:focus, form textarea:focus, form select:focus) .wasm-floating-speed-dial,
+    body:has(form input:focus, form textarea:focus, form select:focus) .arfa-totop {
+        opacity: 0 !important; pointer-events: none !important;
+    }
+}
+
+/* =====================================================================
+   ARFA header v2 (19.0.2.3.0): typography, spacing, hover / active states
+   ===================================================================== */
+@media (min-width: 992px) {
+    header#top nav.navbar {
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+        border-bottom: 1px solid #eef1f6 !important;
+        box-shadow: 0 4px 22px rgba(25, 39, 84, 0.06) !important;
+        transition: padding .25s ease, box-shadow .25s ease !important;
+    }
+    header#top #o_main_nav {
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-shadow: none !important;
+        padding-left: 28px !important;
+        padding-right: 28px !important;
+        display: flex !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
+    header#top .navbar-brand.logo {
+        display: flex !important;
+        align-items: center !important;
+        padding: 0 !important;
+        margin: 0 32px 0 0 !important;
+        flex-shrink: 0 !important;
+    }
+    html[dir="rtl"] header#top .navbar-brand.logo { margin: 0 0 0 32px !important; }
+    header#top .navbar-brand.logo img {
+        height: 58px !important;
+        width: auto !important;
+        max-height: none !important;
+        transition: height .25s ease !important;
+    }
+    header#top #top_menu {
+        flex: 1 1 auto !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 auto !important;
+    }
+    header#top #top_menu > .nav-item > .nav-link {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        font-size: 0.92rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
+        line-height: 1.2 !important;
+        color: #192754 !important;
+        padding: 12px 14px !important;
+        margin: 0 !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        transform: none !important;
+    }
+    /* gold underline that grows from the centre (::before: ::after is the dropdown caret) */
+    header#top #top_menu > .nav-item > .nav-link::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 14px !important;
+        right: 14px !important;
+        bottom: 4px !important;
+        height: 2px !important;
+        border-radius: 2px !important;
+        background: var(--arfa-gold-main) !important;
+        transform: scaleX(0) !important;
+        transform-origin: center !important;
+        transition: transform .25s ease !important;
+    }
+    header#top #top_menu > .nav-item > .nav-link:hover,
+    header#top #top_menu > .nav-item > .nav-link:focus-visible,
+    header#top #top_menu > .nav-item > .nav-link.active,
+    header#top #top_menu > .nav-item.dropdown:hover > .nav-link,
+    header#top #top_menu > .nav-item > .nav-link.show {
+        color: #c98a0c !important;
+        background: transparent !important;
+        border: 0 !important;
+    }
+    header#top #top_menu > .nav-item > .nav-link:hover::before,
+    header#top #top_menu > .nav-item > .nav-link:focus-visible::before,
+    header#top #top_menu > .nav-item > .nav-link.active::before,
+    header#top #top_menu > .nav-item.dropdown:hover > .nav-link::before,
+    header#top #top_menu > .nav-item > .nav-link.show::before {
+        transform: scaleX(1) !important;
+    }
+    header#top #top_menu > .nav-item > .nav-link.active { font-weight: 700 !important; }
+    /* dropdown caret */
+    header#top #top_menu > .nav-item > .dropdown-toggle::after {
+        margin-left: 7px !important;
+        border-top-width: 0.32em !important;
+        border-left-width: 0.28em !important;
+        border-right-width: 0.28em !important;
+        opacity: .7;
+        transition: transform .25s ease !important;
+    }
+    header#top #top_menu > .nav-item.dropdown:hover > .dropdown-toggle::after,
+    header#top #top_menu > .nav-item > .dropdown-toggle.show::after { transform: rotate(180deg) !important; }
+
+    /* Services dropdown: opens on hover too, clean card */
+    header#top #top_menu > .nav-item.dropdown { position: relative !important; }
+    header#top #top_menu > .nav-item.dropdown:hover > .dropdown-menu { display: block !important; }
+    header#top #top_menu > .nav-item.dropdown > .dropdown-menu {
+        top: 100% !important;
+        margin-top: 0 !important;
+        min-width: 300px !important;
+        padding: 10px !important;
+        border: 1px solid #eef1f6 !important;
+        border-top: 3px solid var(--arfa-gold-main) !important;
+        border-radius: 0 0 14px 14px !important;
+        box-shadow: 0 18px 40px rgba(25, 39, 84, 0.12) !important;
+        animation: arfaDropIn .2s ease both;
+    }
+    header#top #top_menu > .nav-item.dropdown > .dropdown-menu .dropdown-item {
+        position: relative !important;
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+        letter-spacing: 0 !important;
+        text-transform: none !important;
+        color: #192754 !important;
+        padding: 10px 14px !important;
+        border-radius: 10px !important;
+        white-space: normal !important;
+        transition: background .2s ease, color .2s ease, padding .2s ease !important;
+    }
+    header#top #top_menu > .nav-item.dropdown > .dropdown-menu .dropdown-item:hover,
+    header#top #top_menu > .nav-item.dropdown > .dropdown-menu .dropdown-item:focus,
+    header#top #top_menu > .nav-item.dropdown > .dropdown-menu .dropdown-item.active {
+        background: #fff7e6 !important;
+        color: #b77d0a !important;
+        padding-left: 20px !important;
+    }
+    html[dir="rtl"] header#top #top_menu > .nav-item.dropdown > .dropdown-menu .dropdown-item:hover { padding-left: 14px !important; padding-right: 20px !important; }
+
+    /* right side: search + call-to-action */
+    header#top #o_main_nav > .navbar-nav:last-child { gap: 12px !important; padding-left: 16px !important; }
+    header#top a[data-bs-target="#o_search_modal"] {
+        width: 42px !important;
+        height: 42px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 50% !important;
+        color: #192754 !important;
+        background: #fff !important;
+        transition: border-color .2s ease, color .2s ease !important;
+    }
+    header#top a[data-bs-target="#o_search_modal"]:hover { border-color: var(--arfa-gold-main) !important; color: #c98a0c !important; }
+    header#top a[data-bs-target="#o_search_modal"] .oi-search { line-height: 1 !important; font-size: 1rem !important; width: auto !important; height: auto !important; display: block !important; }
+    header#top #o_main_nav > .navbar-nav:last-child .btn {
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.02em !important;
+        padding: 11px 26px !important;
+        white-space: nowrap !important;
+    }
+
+    /* scrolled: slimmer bar */
+    header#top.o_header_is_scrolled nav.navbar,
+    header#top.o_header_affixed nav.navbar { padding-top: 6px !important; padding-bottom: 6px !important; box-shadow: 0 8px 24px rgba(25, 39, 84, 0.10) !important; }
+    header#top.o_header_is_scrolled .navbar-brand.logo img,
+    header#top.o_header_affixed .navbar-brand.logo img { height: 48px !important; }
+}
+/* laptops: keep everything on one line */
+@media (min-width: 992px) and (max-width: 1279.98px) {
+    header#top #o_main_nav { padding-left: 16px !important; padding-right: 16px !important; }
+    header#top .navbar-brand.logo { margin-right: 16px !important; }
+    header#top .navbar-brand.logo img { height: 50px !important; }
+    header#top #top_menu { gap: 0 !important; }
+    header#top #top_menu > .nav-item > .nav-link { font-size: 0.82rem !important; letter-spacing: 0.03em !important; padding: 12px 9px !important; }
+    header#top #top_menu > .nav-item > .nav-link::before { left: 9px !important; right: 9px !important; }
+    header#top #o_main_nav > .navbar-nav:last-child .btn { padding: 10px 18px !important; font-size: 0.8rem !important; }
+}
+@keyframes arfaDropIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* mobile header bar */
+@media (max-width: 991.98px) {
+    header#top nav.navbar { padding: 10px 6px !important; box-shadow: 0 4px 16px rgba(25, 39, 84, 0.07) !important; }
+    header#top nav.navbar .navbar-brand.logo img { height: 46px !important; width: auto !important; }
+    header#top .navbar-toggler {
+        width: 44px; height: 44px; border-radius: 12px !important;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    #top_menu_collapse_mobile .top_menu > li > a.nav-link { font-size: 0.95rem !important; font-weight: 600 !important; letter-spacing: 0.04em !important; }
+}
+
+/* =====================================================================
+   Footer bottom bar + "Back to top" button
+   ===================================================================== */
+.wasm-footer-bottom .wasm-footer-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.wasm-footer-bottom .arfa-footer-totop {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.28) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 8px 10px 8px 18px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: border-color .2s ease, background .2s ease, color .2s ease;
+}
+html[dir="rtl"] .arfa-footer-totop { padding: 8px 18px 8px 10px; }
+.arfa-footer-totop .arfa-footer-totop-icon {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--arfa-gold-main); color: #192754;
+    transition: transform .25s ease;
+}
+.wasm-footer-bottom .arfa-footer-totop:hover, .wasm-footer-bottom .arfa-footer-totop:focus-visible { border-color: var(--arfa-gold-main) !important; background: rgba(232, 163, 23, 0.12) !important; color: #fff !important; outline: none; }
+.arfa-footer-totop:hover .arfa-footer-totop-icon { transform: translateY(-3px); }
+@media (max-width: 767.98px) {
+    .wasm-footer-bottom .wasm-footer-bottom-row { flex-direction: column; justify-content: center; text-align: center; }
+}

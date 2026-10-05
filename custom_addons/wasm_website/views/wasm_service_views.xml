@@ -1,37 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Form View for Services -->
     <record id="view_wasm_service_form" model="ir.ui.view">
         <field name="name">wasm.service.form</field>
         <field name="model">wasm.service</field>
         <field name="arch" type="xml">
-            <form string="الخدمة الإنشائية - عرفة الهندسية">
+            <form string="الخدمة">
                 <header>
                     <field name="active" widget="boolean_toggle"/>
                 </header>
                 <sheet>
-                    <field name="image" widget="image" class="oe_avatar" style="max-width: 120px; max-height: 120px;"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_on_website" type="object" class="oe_stat_button" icon="fa-globe" invisible="not slug">
+                            <div class="o_stat_info"><span class="o_stat_text">عرض في الموقع</span></div>
+                        </button>
+                    </div>
+                    <field name="image" widget="image" class="oe_avatar" options="{'size': [160, 110]}"/>
                     <div class="oe_title">
-                        <label for="name" string="اسم الخدمة الإنشائية"/>
-                        <h1><field name="name" placeholder="مثال: الأعمال الكهروميكانيكية MEP"/></h1>
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="مثال: Medical Gas Systems"/></h1>
                     </div>
                     <group>
-                        <group string="تصنيف الخدمة والأيقونة">
-                            <field name="category"/>
-                            <field name="icon" placeholder="مثال: fa-cogs أو fa-bolt"/>
-                        </group>
-                        <group string="الترتيب والحالة">
+                        <group string="الكارت">
+                            <field name="icon" placeholder="fa-bolt"/>
+                            <field name="show_on_home" widget="boolean_toggle"/>
                             <field name="sequence"/>
-                            <field name="active"/>
+                            <field name="category"/>
+                        </group>
+                        <group string="صفحة الخدمة">
+                            <field name="slug" placeholder="medical-gas-systems"/>
+                            <field name="website_url" widget="url" readonly="1"/>
+                            <field name="banner_image" widget="image" options="{'size': [200, 110]}"/>
                         </group>
                     </group>
                     <notebook>
-                        <page string="الوصف المختصر (يظهر في الكروت)" name="desc">
-                            <field name="short_description" placeholder="اكتب وصفاً موجزاً يظهر في كارت الخدمة بالصفحة الرئيسية والخدمات..."/>
+                        <page string="نصوص الكروت" name="cards">
+                            <group>
+                                <field name="card_description" placeholder="النص تحت اسم الخدمة في سلايدر الصفحة الرئيسية"/>
+                                <field name="short_description" placeholder="النص تحت اسم الخدمة في صفحة الخدمات"/>
+                            </group>
                         </page>
-                        <page string="الشرح المفصل ونطاق العمل" name="details">
-                            <field name="detailed_description" placeholder="تفاصيل الخدمة الشاملة ومعايير التنفيذ وفق الكود السعودي..."/>
+                        <page string="محتوى صفحة الخدمة" name="page">
+                            <group>
+                                <field name="page_title" placeholder="يُستخدم اسم الخدمة إذا تُرك فارغاً"/>
+                                <field name="badge"/>
+                                <field name="intro"/>
+                                <field name="features" placeholder="ميزة في كل سطر"/>
+                            </group>
+                            <label for="detailed_description" string="شرح إضافي (اختياري)"/>
+                            <field name="detailed_description"/>
+                        </page>
+                        <page string="معرض الصور والفيديو" name="media">
+                            <field name="media_ids" context="{'default_service_id': id, 'default_show_in_gallery': False}">
+                                <list>
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="image" widget="image" options="{'size': [90, 60]}"/>
+                                    <field name="media_type"/>
+                                    <field name="name"/>
+                                    <field name="video_url" optional="show"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>

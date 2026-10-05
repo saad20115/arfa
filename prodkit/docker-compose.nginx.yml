@@ -1,0 +1,54 @@
+# =============================================================================
+# OPTIONAL nginx container - used ONLY when the VPS has no nginx on the host.
+# (enable_trial_nginx.sh picks this automatically: ARFA_NGINX_MODE=auto)
+# Always combined with the main file:
+#   docker compose -p arfa_prod --env-file .env -f docker-compose.prod.yml -f docker-compose.nginx.yml --profile trial|domain ...
+# runtime/nginx/ (generated arfa_prod.conf + htpasswd) is mounted on /etc/nginx/conf.d,
+# which also removes the image's default.conf.
+# =============================================================================
+x-arfa-nginx: &arfa-nginx
+  image: ${ARFA_NGINX_IMAGE:-nginx:1.27-alpine}
+  restart: unless-stopped
+  depends_on:
+    odoo:
+      condition: service_healthy
+  networks:
+    - arfa_prod_net
+  mem_limit: ${ARFA_NGINX_MEM:-256m}
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  # Phase 1: only the trial port is published (nothing on 80/443)
+  nginx_trial:
+    <<: *arfa-nginx
+    profiles: ["trial"]
+    ports:
+      - "${ARFA_TRIAL_PORT:-8090}:${ARFA_TRIAL_PORT:-8090}"
+    volumes:
+      - ./runtime/nginx:/etc/nginx/conf.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${ARFA_TRIAL_PORT:-8090}/arfa-nginx-health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Phase 2: 80/443 for arfa-sa.com (certificates from host certbot, webroot shared)
+  nginx_domain:
+    <<: *arfa-nginx
+    profiles: ["domain"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./runtime/nginx:/etc/nginx/conf.d:ro
+      - ${ARFA_ACME_WEBROOT:-/var/www/arfa_prod_acme}:${ARFA_ACME_WEBROOT:-/var/www/arfa_prod_acme}:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/arfa-nginx-health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

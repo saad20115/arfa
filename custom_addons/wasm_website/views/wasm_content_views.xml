@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================= Website texts ================= -->
+    <record id="view_wasm_text_list" model="ir.ui.view">
+        <field name="name">wasm.text.list</field>
+        <field name="model">wasm.text</field>
+        <field name="arch" type="xml">
+            <list string="نصوص الموقع" default_group_by="page">
+                <header>
+                    <button name="action_sync_defaults" type="object" string="إضافة النصوص الناقصة" display="always" class="btn-secondary"/>
+                </header>
+                <field name="sequence" column_invisible="1"/>
+                <field name="page" column_invisible="1"/>
+                <field name="label"/>
+                <field name="value_en" string="النص (English)"/>
+                <field name="value_ar" optional="hide"/>
+                <field name="is_modified" string="معدّل" widget="boolean" optional="show"/>
+                <field name="key" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_wasm_text_form" model="ir.ui.view">
+        <field name="name">wasm.text.form</field>
+        <field name="model">wasm.text</field>
+        <field name="arch" type="xml">
+            <form string="نص في الموقع">
+                <header>
+                    <button name="action_reset_default" type="object" string="استرجاع النص الأصلي"
+                            invisible="not is_modified" confirm="سيتم استبدال النص الحالي بالنص الأصلي. متابعة؟"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h2><field name="label" readonly="1"/></h2>
+                        <div class="text-muted"><field name="page" readonly="1"/></div>
+                    </div>
+                    <group>
+                        <field name="multiline" invisible="1"/>
+                        <field name="value_en" placeholder="English text shown on the website"/>
+                        <field name="value_ar" placeholder="النص العربي (يظهر عند تفعيل اللغة العربية)"/>
+                    </group>
+                    <group string="النص الأصلي" invisible="not is_modified">
+                        <field name="is_modified" invisible="1"/>
+                        <field name="default_en" readonly="1" nolabel="1" colspan="2"/>
+                    </group>
+                    <div class="text-muted small">المفتاح التقني: <field name="key" class="d-inline"/></div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_wasm_text_search" model="ir.ui.view">
+        <field name="name">wasm.text.search</field>
+        <field name="model">wasm.text</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="label"/>
+                <field name="value_en"/>
+                <field name="value_ar"/>
+                <field name="key"/>
+                <group>
+                    <filter name="group_page" string="الصفحة" context="{'group_by': 'page'}"/>
+                </group>
+                <searchpanel>
+                    <field name="page" string="الصفحة" icon="fa-file-text-o"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_wasm_text" model="ir.actions.act_window">
+        <field name="name">نصوص الموقع</field>
+        <field name="res_model">wasm.text</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">كل نصوص الموقع (العناوين، الفقرات، الأزرار، النماذج، الفوتر)</p>
+            <p>اختر الصفحة من اليسار ثم اضغط على النص لتعديله. التغيير يظهر في الموقع فوراً.</p>
+        </field>
+    </record>
+
+    <!-- ================= Content items ================= -->
+    <record id="view_wasm_content_item_list" model="ir.ui.view">
+        <field name="name">wasm.content.item.list</field>
+        <field name="model">wasm.content.item</field>
+        <field name="arch" type="xml">
+            <list string="عناصر المحتوى">
+                <field name="sequence" widget="handle"/>
+                <field name="section" optional="show"/>
+                <field name="image" widget="image" options="{'size': [48, 48]}" optional="show"/>
+                <field name="title_en"/>
+                <field name="subtitle_en" optional="show"/>
+                <field name="value" optional="show"/>
+                <field name="link_url" optional="hide"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_wasm_content_item_form" model="ir.ui.view">
+        <field name="name">wasm.content.item.form</field>
+        <field name="model">wasm.content.item</field>
+        <field name="arch" type="xml">
+            <form string="عنصر محتوى">
+                <sheet>
+                    <widget name="web_ribbon" title="مخفي" bg_color="text-bg-danger" invisible="active"/>
+                    <field name="image" widget="image" class="oe_avatar" options="{'preview_image': 'image'}"/>
+                    <div class="oe_title">
+                        <label for="title_en" string="العنوان"/>
+                        <h1><field name="title_en" placeholder="Title"/></h1>
+                        <field name="title_ar" placeholder="العنوان بالعربي"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="section"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="value" invisible="section != 'stat'"/>
+                            <field name="icon" placeholder="fa-building"/>
+                            <field name="image_url" invisible="image" placeholder="https://..."/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info small" role="status" invisible="section != 'bot_reply'">
+                        <b>ردود المساعد الذكي:</b> اكتب في "عنوان فرعي" الكلمات المفتاحية مفصولة بفواصل (عربي وإنجليزي)،
+                        وفي "الوصف" نص الرد. الرد الذي ليس له كلمات مفتاحية هو الرد الافتراضي.
+                        يمكن استخدام {phone} و {mobile} و {whatsapp} و {email} لتُستبدل ببيانات التواصل تلقائياً.
+                    </div>
+                    <div class="alert alert-info small" role="status" invisible="section != 'bot_chip'">
+                        <b>الأسئلة السريعة:</b> "العنوان" هو نص الزر، و"الوصف" هو السؤال الذي يُرسل للمساعد عند الضغط.
+                    </div>
+                    <notebook>
+                        <page string="النصوص" name="texts">
+                            <group>
+                                <group string="English">
+                                    <field name="subtitle_en"/>
+                                    <field name="badge_en"/>
+                                    <field name="desc_en"/>
+                                </group>
+                                <group string="عربي">
+                                    <field name="subtitle_ar"/>
+                                    <field name="badge_ar"/>
+                                    <field name="desc_ar"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="الرابط" name="link">
+                            <group>
+                                <field name="link_url" placeholder="/quote أو https://..."/>
+                                <field name="link_label_en"/>
+                                <field name="link_label_ar"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_wasm_content_item_search" model="ir.ui.view">
+        <field name="name">wasm.content.item.search</field>
+        <field name="model">wasm.content.item</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="title_en"/>
+                <field name="title_ar"/>
+                <field name="desc_en"/>
+                <filter name="archived" string="المخفية" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_section" string="القسم" context="{'group_by': 'section'}"/>
+                </group>
+                <searchpanel>
+                    <field name="section" string="القسم" icon="fa-th-large"/>
+                </searchpanel>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_wasm_content_item" model="ir.actions.act_window">
+        <field name="name">كروت وقوائم الموقع</field>
+        <field name="res_model">wasm.content.item</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">الكروت والقوائم المتكررة في الموقع</p>
+            <p>كروت الواجهة، الإحصائيات، لماذا عرفة، فريق العمل، مجالات الخبرة، الأقسام، روابط الفوتر، وردود المساعد الذكي.</p>
+        </field>
+    </record>
+
+</odoo>

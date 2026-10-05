@@ -1,0 +1,41 @@
+# Odoo 19 + PostgreSQL 16 for the Arfa project (local Windows / Docker Desktop)
+name: arfa
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: postgres
+    secrets: [db_password]
+    volumes:
+      - arfa-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  odoo:
+    image: odoo:19
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8071:8069"
+      - "8073:8072"
+    volumes:
+      - arfa-odoo-data:/var/lib/odoo
+      - ./custom_addons:/mnt/extra-addons
+      - ./docker/odoo.conf:/etc/odoo/odoo.conf:ro
+      - .:/mnt/arfa-src:ro
+
+secrets:
+  db_password:
+    file: ./docker/db_password.txt
+
+volumes:
+  arfa-db:
+  arfa-odoo-data:

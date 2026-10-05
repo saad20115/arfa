@@ -1,0 +1,103 @@
+# =============================================================================
+# ARFA website - Odoo 19 Community - PRODUCTION stack (isolated from other apps)
+# Always driven by the kit scripts, which run:
+#   docker compose -p arfa_prod --env-file .env -f docker-compose.prod.yml ...
+# - project / containers : arfa_prod  -> arfa_prod-db-1, arfa_prod-odoo-1
+# - network              : arfa_prod_net (dedicated bridge)
+# - volumes              : arfa_prod_db, arfa_prod_odoo (explicit names)
+# - PostgreSQL           : NOT published on the host at all
+# - Odoo                 : published on 127.0.0.1 only (nginx is the public entry)
+# Image pinning: odoo:19.0 is a moving tag (nightly rebuilds). For reproducible
+# deploys set ARFA_ODOO_IMAGE=odoo:19.0-YYYYMMDD in .env (see hub.docker.com/_/odoo/tags)
+# or pin the digest: odoo:19.0@sha256:... (status.sh prints the running digest).
+# =============================================================================
+name: arfa_prod
+
+x-arfa-logging: &arfa-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  db:
+    image: ${ARFA_PG_IMAGE:-postgres:16}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${ARFA_DB_USER:-odoo}
+      POSTGRES_PASSWORD_FILE: /run/secrets/arfa_db_password
+      POSTGRES_DB: postgres
+    secrets:
+      - arfa_db_password
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${ARFA_PG_SHARED_BUFFERS:-256MB}
+      - -c
+      - max_connections=${ARFA_PG_MAX_CONNECTIONS:-200}
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - effective_cache_size=768MB
+    volumes:
+      - arfa_prod_db:/var/lib/postgresql/data
+    networks:
+      - arfa_prod_net
+    # no "ports:" on purpose - only the odoo service can reach PostgreSQL
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -U $${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: ${ARFA_DB_MEM:-1g}
+    shm_size: 256m
+    stop_grace_period: 60s
+    logging: *arfa-logging
+
+  odoo:
+    image: ${ARFA_ODOO_IMAGE:-odoo:19.0}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ARFA_HTTP_PORT:-18069}:8069"   # HTTP  -> nginx upstream arfa_prod_odoo
+      - "127.0.0.1:${ARFA_CHAT_PORT:-18072}:8072"   # gevent/websocket -> arfa_prod_odoo_chat
+    volumes:
+      - arfa_prod_odoo:/var/lib/odoo
+      - ${ARFA_ADDONS_DIR:-/opt/arfa/custom_addons}:/mnt/extra-addons:ro
+      - ./runtime/odoo.conf:/etc/odoo/odoo.conf:ro
+    networks:
+      - arfa_prod_net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    mem_limit: ${ARFA_ODOO_MEM:-4g}
+    pids_limit: 1024
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    stop_grace_period: 60s
+    logging: *arfa-logging
+
+secrets:
+  arfa_db_password:
+    file: ./runtime/db_password
+
+volumes:
+  arfa_prod_db:
+    name: arfa_prod_db
+  arfa_prod_odoo:
+    name: arfa_prod_odoo
+
+networks:
+  arfa_prod_net:
+    name: arfa_prod_net
+    driver: bridge

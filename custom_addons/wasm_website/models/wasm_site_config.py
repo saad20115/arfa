@@ -1,11 +1,23 @@
 # -*- coding: utf-8 -*-
+import hashlib
+import hmac
 import json
 import logging
 import re
+import time
 
 from markupsafe import Markup
 
 from odoo import api, fields, models
+from odoo.http import request
+
+from .texts.t_seo import PAGE_IDS
+from .wasm_mixins import BANNER_PX, wasm_check_urls
+
+HIDE_FROM_SEARCH_PARAM = 'wasm_website.hide_from_search_engines'
+FORM_TOKEN_MIN_AGE = 3              # seconds: faster than a human can fill the form
+FORM_TOKEN_MAX_AGE = 24 * 3600      # a page left open for a day must be reloaded
+META_DESCRIPTION_MAX = 155
 
 _logger = logging.getLogger(__name__)
 
@@ -62,15 +74,15 @@ AR_DEFAULTS = {
 
 # Static images used when nothing was uploaded in the backend.
 DEFAULT_IMAGES = {
-    'pillar1_img': '/wasm_website/static/src/img/pillar_civil.png',
-    'pillar2_img': '/wasm_website/static/src/img/pillar_mep.png',
-    'pillar3_img': '/wasm_website/static/src/img/pillar_mgmt.png',
-    'why1_img': '/wasm_website/static/src/img/why_sbc.png',
-    'why2_img': '/wasm_website/static/src/img/why_bim.png',
-    'why3_img': '/wasm_website/static/src/img/why_machinery.png',
-    'why4_img': '/wasm_website/static/src/img/why_timelines.png',
-    'why5_img': '/wasm_website/static/src/img/why_qc.png',
-    'why6_img': '/wasm_website/static/src/img/why_safety.png',
+    'pillar1_img': '/wasm_website/static/src/img/pillar_civil.jpg',
+    'pillar2_img': '/wasm_website/static/src/img/pillar_mep.jpg',
+    'pillar3_img': '/wasm_website/static/src/img/pillar_mgmt.jpg',
+    'why1_img': '/wasm_website/static/src/img/why_sbc.jpg',
+    'why2_img': '/wasm_website/static/src/img/why_bim.jpg',
+    'why3_img': '/wasm_website/static/src/img/why_machinery.jpg',
+    'why4_img': '/wasm_website/static/src/img/why_timelines.jpg',
+    'why5_img': '/wasm_website/static/src/img/why_qc.jpg',
+    'why6_img': '/wasm_website/static/src/img/why_safety.jpg',
     'srv1_img': '/wasm_website/static/src/img/arfa_exhibition_building.webp',
     'srv2_img': '/wasm_website/static/src/img/arfa_electrical_panels.webp',
     'srv3_img': '/wasm_website/static/src/img/service_card_3.jpg',
@@ -79,9 +91,11 @@ DEFAULT_IMAGES = {
     'srv6_img': '/wasm_website/static/src/img/service_card_6.jpg',
     'srv7_img': '/wasm_website/static/src/img/service_card_7.jpg',
     'srv8_img': '/wasm_website/static/src/img/service_card_8.jpg',
-    'hero_bg_image': '/wasm_website/static/src/img/hero_bg.png',
+    'hero_bg_image': '/wasm_website/static/src/img/hero_bg.jpg',
     'showcase_poster': '',
     'showcase_bg_image': '',
+    'about_image': '/wasm_website/static/src/img/about_teamwork.jpg',
+    'footer_logo': '/wasm_website/static/src/img/arfa_logo_stacked.svg',
 }
 
 
@@ -89,9 +103,17 @@ def _ar(name):
     return AR_DEFAULTS.get(name, '')
 
 
+def one_line(text):
+    """Single line text: collapsed whitespace, no space before punctuation ('Jeddah , KSA' -> 'Jeddah, KSA')."""
+    return re.sub(r'\s+([,،.;:])', r'\1', ' '.join((text or '').split()))
+
+
 class WasmSiteConfig(models.Model):
     _name = 'wasm.site.config'
     _description = 'Site Config & Media Settings - ARFA SPECIALIZED SYSTEMS'
+    _inherit = ['wasm.image.mixin']
+    _wasm_image_fields = {'showcase_poster': BANNER_PX, 'showcase_bg_image': BANNER_PX, 'hero_bg_image': BANNER_PX,
+                          'about_image': BANNER_PX, 'footer_logo': 800}
 
     name = fields.Char(string='Config Name', default='Official Website Config', required=True)
 
@@ -124,6 +146,27 @@ class WasmSiteConfig(models.Model):
     hero_title_ar = fields.Char(string='Hero Subtitle (Arabic)', default=_ar('hero_title_ar'))
     hero_title_en = fields.Char(string='Hero Subtitle (English)', default='Pioneering Engineering & Construction Excellence')
     hero_bg_image = fields.Image(string='Hero Background / Video Poster', max_width=1920, max_height=1080)
+
+    # Homepage hero background video
+    home_hero_video_file = fields.Binary(string='Homepage Hero Video (MP4)', attachment=True)
+    home_hero_video_filename = fields.Char(string='Hero Video Filename')
+    home_hero_video_url = fields.Char(string='Hero Video URL / Path', default='/wasm_website/static/src/video/hero_construction.mp4',
+                                      help='Used when no file is uploaded: an MP4 link or a module path')
+
+    # Page images
+    about_image = fields.Image(string='About Page Image', max_width=1920, max_height=1400)
+    footer_logo = fields.Image(string='Footer Logo', max_width=800, max_height=800,
+                               help='Leave empty to use the default ARFA logo')
+
+    # Maps (Google Maps "Embed a map" link = the src="..." of the iframe)
+    map_embed_url = fields.Char(string='Location Page Map (embed URL)',
+                                default='https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d115923.63388726593!2d46.6752957!3d24.7135517!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e2f03890d489399%3A0xba974d1c98e79fd5!2sRiyadh%20Saudi%20Arabia!5e0!3m2!1sen!2ssa!4v1690000000000!5m2!1sen!2ssa')
+    map_link_url = fields.Char(string='Location Page "Get Directions" link',
+                               default='https://maps.google.com/?q=24.7135517,46.6752957')
+    hq_map_embed_url = fields.Char(string='Head Office Map (embed URL)',
+                                   default='https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3711.4798363803156!2d39.1809849!3d21.5280852!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x15c3cfc490b3441f%3A0xc4a4b5005a01fcc0!2z2YXYsdmD2LIg2KfZhNiu2YTZitisINmD2LnZg9mK!5e0!3m2!1sar!2ssa!4v1786653012903!5m2!1sar!2ssa')
+    hq_map_link_url = fields.Char(string='Head Office "Get Directions" link',
+                                  default='https://maps.google.com/?q=21.5280852,39.1809849')
 
     # Company Profile PDF Document
     company_profile_pdf = fields.Binary(string='Company Profile PDF Document', attachment=True, help='Upload official company profile PDF file')
@@ -181,138 +224,30 @@ class WasmSiteConfig(models.Model):
     social_tiktok = fields.Char(string='TikTok URL')
     social_snapchat = fields.Char(string='Snapchat URL')
 
-    # Pillar Cards (3 Hero Cards)
-    pillar1_img = fields.Image(string='Pillar 1 Image', max_width=1200, max_height=800)
-    pillar1_title_ar = fields.Char(string='Pillar 1 Title (Arabic)', default=_ar('pillar1_title_ar'))
-    pillar1_title_en = fields.Char(string='Pillar 1 Title (English)', default='Structural & Civil Contracting')
-    pillar1_desc_ar = fields.Text(string='Pillar 1 Description (Arabic)', default=_ar('pillar1_desc_ar'))
-    pillar1_desc_en = fields.Text(string='Pillar 1 Description (English)', default='Concrete framing, foundations, and heavy structural developments executed strictly to SBC codes.')
-    pillar1_link = fields.Char(string='Pillar 1 URL', default='/services')
+    # Trial / staging switch (also set directly by the deployment scripts)
+    hide_from_search_engines = fields.Boolean(
+        string='إخفاء الموقع عن محركات البحث (وضع التجربة)',
+        compute='_compute_hide_from_search_engines', inverse='_inverse_hide_from_search_engines',
+        help='robots.txt يمنع الفهرسة ويضاف وسم noindex لكل الصفحات. أوقفه عند تشغيل الموقع على النطاق الرسمي.')
 
-    pillar2_img = fields.Image(string='Pillar 2 Image', max_width=1200, max_height=800)
-    pillar2_title_ar = fields.Char(string='Pillar 2 Title (Arabic)', default=_ar('pillar2_title_ar'))
-    pillar2_title_en = fields.Char(string='Pillar 2 Title (English)', default='MEP & Mechanical Systems')
-    pillar2_desc_ar = fields.Text(string='Pillar 2 Description (Arabic)', default=_ar('pillar2_desc_ar'))
-    pillar2_desc_en = fields.Text(string='Pillar 2 Description (English)', default='Advanced HVAC ducting, plumbing, electrical grid infrastructure, and smart automation.')
-    pillar2_link = fields.Char(string='Pillar 2 URL', default='/services')
+    _URL_FIELDS = ('social_linkedin', 'social_x', 'social_instagram', 'social_facebook', 'social_youtube',
+                   'social_tiktok', 'social_snapchat', 'showcase_video_url', 'home_hero_video_url',
+                   'map_link_url', 'hq_map_link_url')
+    _EMBED_FIELDS = ('map_embed_url', 'hq_map_embed_url')
 
-    pillar3_img = fields.Image(string='Pillar 3 Image', max_width=1200, max_height=800)
-    pillar3_title_ar = fields.Char(string='Pillar 3 Title (Arabic)', default=_ar('pillar3_title_ar'))
-    pillar3_title_en = fields.Char(string='Pillar 3 Title (English)', default='Turnkey Project Delivery')
-    pillar3_desc_ar = fields.Text(string='Pillar 3 Description (Arabic)', default=_ar('pillar3_desc_ar'))
-    pillar3_desc_en = fields.Text(string='Pillar 3 Description (English)', default='Comprehensive engineering management, interior fitouts, and end-to-end turnkey delivery.')
-    pillar3_link = fields.Char(string='Pillar 3 URL', default='/services')
+    @api.constrains(*_URL_FIELDS, *_EMBED_FIELDS)
+    def _check_wasm_urls(self):
+        wasm_check_urls(self, url_fields=self._URL_FIELDS, embed_fields=self._EMBED_FIELDS)
 
-    # Company Statistics (4 Cards)
-    stat1_val = fields.Char(string='Stat 1 Value', default='150+')
-    stat1_label_ar = fields.Char(string='Stat 1 Label (Arabic)', default=_ar('stat1_label_ar'))
-    stat1_label_en = fields.Char(string='Stat 1 Label (English)', default='Completed Projects')
+    def _compute_hide_from_search_engines(self):
+        value = self.wasm_hide_from_search()
+        for rec in self:
+            rec.hide_from_search_engines = value
 
-    stat2_val = fields.Char(string='Stat 2 Value', default='18+')
-    stat2_label_ar = fields.Char(string='Stat 2 Label (Arabic)', default=_ar('stat2_label_ar'))
-    stat2_label_en = fields.Char(string='Stat 2 Label (English)', default='Years Experience')
-
-    stat3_val = fields.Char(string='Stat 3 Value', default='1,200,000+')
-    stat3_label_ar = fields.Char(string='Stat 3 Label (Arabic)', default=_ar('stat3_label_ar'))
-    stat3_label_en = fields.Char(string='Stat 3 Label (English)', default='m² Executed Area')
-
-    stat4_val = fields.Char(string='Stat 4 Value', default='85+')
-    stat4_label_ar = fields.Char(string='Stat 4 Label (Arabic)', default=_ar('stat4_label_ar'))
-    stat4_label_en = fields.Char(string='Stat 4 Label (English)', default='Engineers & Specialists')
-
-    # Why Choose Us Cards (6 Cards)
-    why1_img = fields.Image(string='Why 1 Image', max_width=1200, max_height=800)
-    why1_title_ar = fields.Char(string='Why 1 Title (Arabic)', default=_ar('why1_title_ar'))
-    why1_title_en = fields.Char(string='Why 1 Title (English)', default='SBC Code Compliance')
-    why1_desc_ar = fields.Text(string='Why 1 Description (Arabic)', default=_ar('why1_desc_ar'))
-    why1_desc_en = fields.Text(string='Why 1 Description (English)', default='Strict adherence to Saudi Building Code specifications across all concrete structural works.')
-
-    why2_img = fields.Image(string='Why 2 Image', max_width=1200, max_height=800)
-    why2_title_ar = fields.Char(string='Why 2 Title (Arabic)', default=_ar('why2_title_ar'))
-    why2_title_en = fields.Char(string='Why 2 Title (English)', default='BIM 3D Project Tech')
-    why2_desc_ar = fields.Text(string='Why 2 Description (Arabic)', default=_ar('why2_desc_ar'))
-    why2_desc_en = fields.Text(string='Why 2 Description (English)', default='Advanced 3D modeling and clash detection prior to site execution ensuring zero errors.')
-
-    why3_img = fields.Image(string='Why 3 Image', max_width=1200, max_height=800)
-    why3_title_ar = fields.Char(string='Why 3 Title (Arabic)', default=_ar('why3_title_ar'))
-    why3_title_en = fields.Char(string='Why 3 Title (English)', default='Owned Heavy Machinery')
-    why3_desc_ar = fields.Text(string='Why 3 Description (Arabic)', default=_ar('why3_desc_ar'))
-    why3_desc_en = fields.Text(string='Why 3 Description (English)', default='Complete fleet of excavators, cranes, and concrete pumps to accelerate timelines.')
-
-    why4_img = fields.Image(string='Why 4 Image', max_width=1200, max_height=800)
-    why4_title_ar = fields.Char(string='Why 4 Title (Arabic)', default=_ar('why4_title_ar'))
-    why4_title_en = fields.Char(string='Why 4 Title (English)', default='Strict Timelines')
-    why4_desc_ar = fields.Text(string='Why 4 Description (Arabic)', default=_ar('why4_desc_ar'))
-    why4_desc_en = fields.Text(string='Why 4 Description (English)', default='Guaranteed project completion within agreed schedule and transparent budget.')
-
-    why5_img = fields.Image(string='Why 5 Image', max_width=1200, max_height=800)
-    why5_title_ar = fields.Char(string='Why 5 Title (Arabic)', default=_ar('why5_title_ar'))
-    why5_title_en = fields.Char(string='Why 5 Title (English)', default='Certified Quality Lab')
-    why5_desc_ar = fields.Text(string='Why 5 Description (Arabic)', default=_ar('why5_desc_ar'))
-    why5_desc_en = fields.Text(string='Why 5 Description (English)', default='Rigorous core testing and ultrasound concrete strength inspection on site.')
-
-    why6_img = fields.Image(string='Why 6 Image', max_width=1200, max_height=800)
-    why6_title_ar = fields.Char(string='Why 6 Title (Arabic)', default=_ar('why6_title_ar'))
-    why6_title_en = fields.Char(string='Why 6 Title (English)', default='ISO & Site Safety Compliance')
-    why6_desc_ar = fields.Text(string='Why 6 Description (Arabic)', default=_ar('why6_desc_ar'))
-    why6_desc_en = fields.Text(string='Why 6 Description (English)', default='Zero-hazard workplace policies adhering to international safety frameworks.')
-
-    # Service Cards (8 Cards matching exact website menu tabs)
-    srv1_img = fields.Image(string='Service 1 Image', max_width=1200, max_height=800)
-    srv1_title_ar = fields.Char(string='Service 1 Title (Arabic)', default=_ar('srv1_title_ar'))
-    srv1_title_en = fields.Char(string='Service 1 Title (English)', default='Modern building systems')
-    srv1_desc_ar = fields.Text(string='Service 1 Description (Arabic)', default=_ar('srv1_desc_ar'))
-    srv1_desc_en = fields.Text(string='Service 1 Description (English)', default='Advanced modern construction tech, glass facades, prefab steel framing, and turnkey fitouts.')
-    srv1_url = fields.Char(string='Service 1 URL', default='/modern-building-systems')
-
-    srv2_img = fields.Image(string='Service 2 Image', max_width=1200, max_height=800)
-    srv2_title_ar = fields.Char(string='Service 2 Title (Arabic)', default=_ar('srv2_title_ar'))
-    srv2_title_en = fields.Char(string='Service 2 Title (English)', default='Electromechanical systems')
-    srv2_desc_ar = fields.Text(string='Service 2 Description (Arabic)', default=_ar('srv2_desc_ar'))
-    srv2_desc_en = fields.Text(string='Service 2 Description (English)', default='Design, supply, and installation of power grids, mechanical infrastructure, and sanitary networks.')
-    srv2_url = fields.Char(string='Service 2 URL', default='/electromechanical-systems')
-
-    srv3_img = fields.Image(string='Service 3 Image', max_width=1200, max_height=800)
-    srv3_title_ar = fields.Char(string='Service 3 Title (Arabic)', default=_ar('srv3_title_ar'))
-    srv3_title_en = fields.Char(string='Service 3 Title (English)', default='Smart building systems')
-    srv3_desc_ar = fields.Text(string='Service 3 Description (Arabic)', default=_ar('srv3_desc_ar'))
-    srv3_desc_en = fields.Text(string='Service 3 Description (English)', default='Building automation, smart control panels, security systems, and early warning technology.')
-    srv3_url = fields.Char(string='Service 3 URL', default='/smart-building-systems')
-
-    srv4_img = fields.Image(string='Service 4 Image', max_width=1200, max_height=800)
-    srv4_title_ar = fields.Char(string='Service 4 Title (Arabic)', default=_ar('srv4_title_ar'))
-    srv4_title_en = fields.Char(string='Service 4 Title (English)', default='Alternative energy solutions')
-    srv4_desc_ar = fields.Text(string='Service 4 Description (Arabic)', default=_ar('srv4_desc_ar'))
-    srv4_desc_en = fields.Text(string='Service 4 Description (English)', default='Photovoltaic solar energy systems and energy optimization solutions for commercial sectors.')
-    srv4_url = fields.Char(string='Service 4 URL', default='/alternative-energy-solutions')
-
-    srv5_img = fields.Image(string='Service 5 Image', max_width=1200, max_height=800)
-    srv5_title_ar = fields.Char(string='Service 5 Title (Arabic)', default=_ar('srv5_title_ar'))
-    srv5_title_en = fields.Char(string='Service 5 Title (English)', default='Fire protection & prevention systems')
-    srv5_desc_ar = fields.Text(string='Service 5 Description (Arabic)', default=_ar('srv5_desc_ar'))
-    srv5_desc_en = fields.Text(string='Service 5 Description (English)', default='Automatic fire suppression, alarm networks, and civil defense certified pump installations.')
-    srv5_url = fields.Char(string='Service 5 URL', default='/fire-protection-prevention-systems')
-
-    srv6_img = fields.Image(string='Service 6 Image', max_width=1200, max_height=800)
-    srv6_title_ar = fields.Char(string='Service 6 Title (Arabic)', default=_ar('srv6_title_ar'))
-    srv6_title_en = fields.Char(string='Service 6 Title (English)', default='Medical Gas Systems')
-    srv6_desc_ar = fields.Text(string='Service 6 Description (Arabic)', default=_ar('srv6_desc_ar'))
-    srv6_desc_en = fields.Text(string='Service 6 Description (English)', default='Design and installation of central medical gas pipelines and operating theatre infrastructure.')
-    srv6_url = fields.Char(string='Service 6 URL', default='/medical-gas-systems')
-
-    srv7_img = fields.Image(string='Service 7 Image', max_width=1200, max_height=800)
-    srv7_title_ar = fields.Char(string='Service 7 Title (Arabic)', default=_ar('srv7_title_ar'))
-    srv7_title_en = fields.Char(string='Service 7 Title (English)', default='Infrastructure Development')
-    srv7_desc_ar = fields.Text(string='Service 7 Description (Arabic)', default=_ar('srv7_desc_ar'))
-    srv7_desc_en = fields.Text(string='Service 7 Description (English)', default='Underground piping, drainage networks, site excavation, and public infrastructure works.')
-    srv7_url = fields.Char(string='Service 7 URL', default='/infrastructure-development')
-
-    srv8_img = fields.Image(string='Service 8 Image', max_width=1200, max_height=800)
-    srv8_title_ar = fields.Char(string='Service 8 Title (Arabic)', default=_ar('srv8_title_ar'))
-    srv8_title_en = fields.Char(string='Service 8 Title (English)', default='Planning & Construction')
-    srv8_desc_ar = fields.Text(string='Service 8 Description (Arabic)', default=_ar('srv8_desc_ar'))
-    srv8_desc_en = fields.Text(string='Service 8 Description (English)', default='Concrete framing, foundations, and heavy structural developments executed strictly to SBC code.')
-    srv8_url = fields.Char(string='Service 8 URL', default='/planning-construction')
+    def _inverse_hide_from_search_engines(self):
+        for rec in self[:1]:
+            self.env['ir.config_parameter'].sudo().set_param(
+                HIDE_FROM_SEARCH_PARAM, 'True' if rec.hide_from_search_engines else 'False')
 
     # ------------------------------------------------------------------
     # Singleton access
@@ -353,6 +288,32 @@ class WasmSiteConfig(models.Model):
     # ------------------------------------------------------------------
     # Helpers used by the QWeb templates
     # ------------------------------------------------------------------
+    def is_en(self):
+        return (self.env.lang or 'en_US').startswith('en')
+
+    def tx(self, key):
+        """Editable website text (``wasm.text``) for the visitor language."""
+        return self.env['wasm.text'].sudo().get_text(key, self.env.lang)
+
+    def txb(self, key):
+        """Same as tx() but keeps line breaks (Markup with <br/>), for paragraphs."""
+        return self.env['wasm.text'].sudo().get_text_br(key, self.env.lang)
+
+    def items(self, section, limit=None):
+        """Active ``wasm.content.item`` records of a section, in display order."""
+        return self.env['wasm.content.item'].sudo().search(
+            [('section', '=', section), ('active', '=', True)], order='sequence, id', limit=limit)
+
+    def home_services(self):
+        return self.env['wasm.service'].sudo().search(
+            [('active', '=', True), ('show_on_home', '=', True)], order='sequence, id')
+
+    def wasm_hero_video_url(self):
+        self.ensure_one()
+        if self.home_hero_video_file:
+            return '/wasm/video/hero?unique=%s' % self.wasm_unique()
+        return self.home_hero_video_url or '/wasm_website/static/src/video/hero_construction.mp4'
+
     def wasm_t(self, base, is_en=None):
         """Bilingual value of ``<base>_en`` / ``<base>_ar`` for the visitor language.
 
@@ -400,38 +361,94 @@ class WasmSiteConfig(models.Model):
         self.ensure_one()
         return (self.seo_description_en if is_en else self.seo_description_ar) or self.seo_description_en or ''
 
-    # page path -> (English name, Arabic name, English description, Arabic description)
-    _PAGE_META = {
-        '/': ('Saudi Contractor Since 1972', 'مقاولات وأنظمة متخصصة منذ 1972', None, None),
-        '/about': ('About Us', 'عن الشركة',
-                   'ARFA Construction & Specialized Systems: a Saudi contractor since 1972 delivering structural, MEP, smart-building, fire-protection and medical-gas projects across the Kingdom.',
-                   'شركة عرفة للأنظمة المتخصصة: مقاول سعودي منذ عام 1972 ينفذ أعمال الإنشاءات والكهروميكانيك والمباني الذكية والحماية من الحريق والغازات الطبية في أنحاء المملكة.'),
-        '/our-company': ('Our Company', 'شركتنا',
-                         'Company divisions, leadership and certifications of ARFA Construction & Specialized Systems in Saudi Arabia.',
-                         'أقسام شركة عرفة للأنظمة المتخصصة وفريق القيادة والاعتمادات في المملكة العربية السعودية.'),
-        '/services': ('Our Services', 'خدماتنا',
-                      'Planning & construction, MEP, smart building (BMS), modern building systems, fire protection, medical gas, solar energy and infrastructure works by ARFA.',
-                      'التخطيط والإنشاءات، الكهروميكانيك، المباني الذكية، الأنظمة الحديثة، الحماية من الحريق، الغازات الطبية، الطاقة الشمسية والبنية التحتية من شركة عرفة.'),
-        '/projects': ('Our Projects', 'مشاريعنا',
-                      'Completed and ongoing hotel, residential, healthcare and commercial projects delivered by ARFA Construction & Specialized Systems.',
-                      'مشاريع شركة عرفة للأنظمة المتخصصة المنجزة والجارية: فنادق ومبانٍ سكنية وصحية وتجارية.'),
-        '/news': ('News & Media', 'الأخبار والأنشطة',
-                  'Latest news, project milestones and events from ARFA Construction & Specialized Systems.',
-                  'آخر أخبار شركة عرفة للأنظمة المتخصصة ومراحل المشاريع والفعاليات.'),
-        '/quote': ('Request a Quote', 'طلب عرض سعر',
-                   'Request a quotation from ARFA for construction, MEP, fire protection, medical gas or smart building works in Saudi Arabia.',
-                   'اطلب عرض سعر من شركة عرفة لأعمال الإنشاءات أو الكهروميكانيك أو الحماية من الحريق أو الغازات الطبية أو المباني الذكية.'),
-        '/contactus': ('Contact Us', 'اتصل بنا',
-                       'Contact ARFA Construction & Specialized Systems: phone, email, address and the right department for your project.',
-                       'تواصل مع شركة عرفة للأنظمة المتخصصة: الهاتف والبريد والعنوان والقسم المناسب لمشروعك.'),
-        '/contact-team': ('Contact Us', 'اتصل بنا', None, None),
-        '/location': ('Our Location', 'موقعنا',
-                      'Find the ARFA Construction & Specialized Systems office on the map with directions and working hours.',
-                      'موقع مكتب شركة عرفة للأنظمة المتخصصة على الخريطة مع الاتجاهات وساعات العمل.'),
-        '/quote/thanks': ('Request Received', 'تم استلام الطلب', None, None),
-    }
+    @api.model
+    def wasm_hide_from_search(self):
+        """True while the site must stay out of search engines (trial / staging).
 
-    def wasm_page_meta(self, path, is_en=True, main_object=None, project=None, article=None, service_info=None):
+        Read straight from the table (not the cached get_param): the deployment scripts
+        switch it with SQL and the change must apply at once, in every worker.
+        """
+        self.env['ir.config_parameter'].flush_model(['key', 'value'])
+        self.env.cr.execute("SELECT value FROM ir_config_parameter WHERE key = %s", (HIDE_FROM_SEARCH_PARAM,))
+        row = self.env.cr.fetchone()
+        return bool(row) and str(row[0] or '').strip().lower() in ('true', '1', 'yes')
+
+    @api.model
+    def wasm_base_url(self, url_root=None):
+        """Public site address without trailing slash.
+
+        Taken from the ``web.base.url`` system parameter, never from the request Host
+        header (which a client can forge). ``url_root`` is only a fallback when the
+        parameter is empty.
+        """
+        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url') or url_root or ''
+        return base.strip().rstrip('/')
+
+    @staticmethod
+    def wasm_phone_digits(phone):
+        """Saudi phone number as international digits: '+966 05x', '05x', '00966 5x' -> '9665x...'."""
+        digits = ''.join(ch for ch in (phone or '') if ch.isdigit() and ch.isascii())
+        if digits.startswith('00'):
+            digits = digits[2:]
+        if digits.startswith('9660'):          # +966 05x... typed with the local leading 0
+            digits = '966' + digits[4:]
+        elif digits.startswith('0') and len(digits) == 10:   # 05x mobile / 01x landline
+            digits = '966' + digits[1:]
+        return digits
+
+    @api.model
+    def wasm_phone_e164(self, phone):
+        """E.164 form (``+966545432343``) of a phone number, '' when there are no digits."""
+        digits = self.wasm_phone_digits(phone)
+        return '+' + digits if digits else ''
+
+    # ------------------------------------------------------------------
+    # Anti-bot token of the public forms
+    # ------------------------------------------------------------------
+    @api.model
+    def _wasm_form_signature(self, timestamp):
+        secret = self.env['ir.config_parameter'].sudo().get_param('database.secret') or ''
+        return hmac.new(secret.encode(), str(timestamp).encode(), hashlib.sha256).hexdigest()[:32]
+
+    @api.model
+    def wasm_form_token(self):
+        """Signed '<unix time>.<signature>' rendered in a hidden input of the public forms."""
+        timestamp = int(time.time())
+        return '%s.%s' % (timestamp, self._wasm_form_signature(timestamp))
+
+    @api.model
+    def wasm_check_form_token(self, token, now=None):
+        """True when ``token`` was issued by wasm_form_token() between 3 s and 24 h ago."""
+        if not token or not isinstance(token, str) or len(token) > 64:
+            return False
+        timestamp, _sep, signature = token.strip().partition('.')
+        if not timestamp.isascii() or not timestamp.isdigit() or len(timestamp) > 12 or not signature:
+            return False
+        age = (now if now is not None else time.time()) - int(timestamp)
+        if not FORM_TOKEN_MIN_AGE <= age <= FORM_TOKEN_MAX_AGE:
+            return False
+        return hmac.compare_digest(signature.encode(), self._wasm_form_signature(int(timestamp)).encode())
+
+    @staticmethod
+    def _wasm_shorten(text, limit=META_DESCRIPTION_MAX):
+        text = ' '.join((text or '').split())
+        if len(text) <= limit:
+            return text
+        cut = text[:limit - 1]
+        if ' ' in cut[limit // 2:]:
+            cut = cut.rsplit(' ', 1)[0]
+        return cut.rstrip(' ,;:.-–—|') + '…'
+
+    def _wasm_absolute(self, url):
+        if not url:
+            return None
+        if url.startswith(('http://', 'https://')):
+            return url
+        if url.startswith('/') and not url.startswith('//'):
+            return self.wasm_base_url() + url
+        return None
+
+    def wasm_page_meta(self, path, is_en=True, main_object=None, project=None, article=None, service=None, service_info=None):
         """Clean <title> and description for every ARFA page, computed in <head>.
 
         (Values set with t-set inside a page body are not visible to <head> in Odoo 19,
@@ -444,28 +461,38 @@ class WasmSiteConfig(models.Model):
         path = re.sub(r'^/[a-z]{2}(?:_[A-Za-z0-9]{2,4})?(?=/|$)', '', path or '/') or '/'
         if len(path) > 1:
             path = path.rstrip('/')
-        name = desc = None
-        # only our own records (other apps may use the same variable names, e.g. project.project)
-        if getattr(project, '_name', None) != 'wasm.project':
+        name = desc = image = None
+        # Only our own records, and only on their own page: list templates loop with
+        # variables of the same name (t-as="project"), which would otherwise leak into <head>.
+        if getattr(project, '_name', None) != 'wasm.project' or len(project) != 1 \
+                or path != '/projects/%s' % project.id:
             project = None
-        if getattr(article, '_name', None) != 'wasm.news':
+        if getattr(article, '_name', None) != 'wasm.news' or len(article) != 1 \
+                or path != '/news/%s' % article.id:
             article = None
-        if not isinstance(service_info, dict):
-            service_info = None
+        if getattr(service, '_name', None) != 'wasm.service' or len(service) != 1 \
+                or path not in (service.website_url, '/services/%s' % service.slug):
+            service = None
         if project:
             name = project.name
             bits = [project.name, project.location, project.scope_of_work or project.wasm_type_label(is_en)]
             desc = project.description or ' — '.join(b for b in bits if b)
+            if project.image:
+                image = self._wasm_absolute(project.wasm_main_image_url())
         elif article:
             name = (article.title_en or article.name) if is_en else (article.name or article.title_en)
             desc = (article.summary_en or article.summary) if is_en else (article.summary or article.summary_en)
-        elif service_info:
-            name = service_info.get('title_en' if is_en else 'title_ar') or service_info.get('title_en')
-            desc = service_info.get('subtitle_en' if is_en else 'subtitle_ar') or service_info.get('subtitle_en')
-        elif path in self._PAGE_META:
-            en, ar, d_en, d_ar = self._PAGE_META[path]
-            name = en if is_en else ar
-            desc = d_en if is_en else d_ar
+            image = self._wasm_absolute(article.wasm_image_src())
+        elif service:
+            name = service.wasm_title()
+            desc = service.intro or service.short_description
+            if service.banner_image or service.image:
+                image = self._wasm_absolute(service.wasm_banner_url())
+        elif path in PAGE_IDS:
+            Text = self.env['wasm.text'].sudo()
+            lang = 'en_US' if is_en else 'ar_001'
+            name = Text.get_text('seo.%s.title' % PAGE_IDS[path], lang) or None
+            desc = Text.get_text('seo.%s.desc' % PAGE_IDS[path], lang) or None
         title = None
         user_title = hasattr(main_object, '_fields') and 'website_meta_title' in main_object._fields \
             and main_object.sudo()[:1].website_meta_title
@@ -476,17 +503,32 @@ class WasmSiteConfig(models.Model):
                 title = '%s | %s' % (name, 'ARFA' if is_en else 'عرفة')   # keep long project/news titles short
             else:
                 title = '%s | %s' % (name, brand)
-        desc = ' '.join((desc or self.wasm_site_description(is_en) or '').split())
-        if len(desc) > 300:
-            desc = desc[:297].rsplit(' ', 1)[0] + '…'
-        return {'title': title, 'name': name, 'description': desc}
+        desc = self._wasm_shorten(desc or self.wasm_site_description(is_en) or '')
+        return {'title': title, 'name': name, 'description': desc, 'image': image}
 
     @api.model
-    def wasm_patch_social_meta(self, website_meta, title, description, is_en, base_url):
-        """Align Open Graph / Twitter tags with the page <title> and description; absolute image URLs."""
+    def wasm_patch_social_meta(self, website_meta, title, description, is_en, base_url, image=None):
+        """Align Open Graph / Twitter tags with the page <title>, description and image.
+
+        URLs are made absolute on ``web.base.url`` (``base_url`` from the request is only
+        a fallback when that parameter is empty).
+        """
         if not isinstance(website_meta, dict):
             return ''
-        base = (base_url or '').rstrip('/')
+        base = self.wasm_base_url(base_url)
+        # hosts the visitor's request used (Odoo builds og:url / og:image from them)
+        request_roots = {r.rstrip('/') for r in (base_url, request and request.httprequest.url_root) if r}
+
+        def absolute(url):
+            if not isinstance(url, str) or not url:
+                return url
+            if url.startswith('/') and not url.startswith('//'):
+                return base + url
+            for root in request_roots:
+                if url == root or url.startswith(root + '/'):
+                    return base + (url[len(root):] or '/')
+            return url
+
         og = website_meta.get('opengraph_meta')
         tw = website_meta.get('twitter_meta')
         if isinstance(og, dict):
@@ -495,17 +537,15 @@ class WasmSiteConfig(models.Model):
             if description:
                 og['og:description'] = description
             og['og:locale'] = 'en_US' if is_en else 'ar_SA'
-            img = og.get('og:image')
-            if isinstance(img, str) and img.startswith('/'):
-                og['og:image'] = base + img
+            if og.get('og:url'):
+                og['og:url'] = absolute(og['og:url'])
+            og['og:image'] = image or absolute(og.get('og:image'))
         if isinstance(tw, dict):
             if title:
                 tw['twitter:title'] = title
             if description:
                 tw['twitter:description'] = description
-            img = tw.get('twitter:image')
-            if isinstance(img, str) and img.startswith('/'):
-                tw['twitter:image'] = base + img
+            tw['twitter:image'] = image or absolute(tw.get('twitter:image'))
         return ''
 
     def wasm_social_links(self):
@@ -514,10 +554,9 @@ class WasmSiteConfig(models.Model):
                  ('facebook', self.social_facebook), ('youtube', self.social_youtube), ('tiktok', self.social_tiktok),
                  ('snapchat', self.social_snapchat)]
         links = {k: v.strip() for k, v in pairs if v and v.strip().startswith(('http://', 'https://'))}
-        if self.contact_phone_secondary:
-            digits = ''.join(ch for ch in self.contact_phone_secondary if ch.isdigit())
-            if digits:
-                links['whatsapp'] = 'https://wa.me/%s' % digits
+        digits = self.wasm_phone_digits(self.contact_phone_secondary)
+        if digits:
+            links['whatsapp'] = 'https://wa.me/%s' % digits
         return links
 
     @staticmethod
@@ -534,10 +573,10 @@ class WasmSiteConfig(models.Model):
     def wasm_jsonld(self, base_url, page_title=None, page_path=None, is_en=True):
         """Schema.org graph: Organization/GeneralContractor + WebSite (+ BreadcrumbList on inner pages)."""
         self.ensure_one()
-        base_url = (base_url or '').rstrip('/')
+        base_url = self.wasm_base_url(base_url)
         name_en = self.brand_name_en or 'ARFA Construction & Specialized Systems'
         name_ar = self.brand_name_ar or 'شركة عرفة للأنظمة المتخصصة'
-        services = [self.wasm_t('srv%d_title' % i, is_en) for i in range(1, 9)]
+        services = self.env['wasm.service'].sudo().search([('active', '=', True)], order='sequence, id').mapped('name')
         org = {
             '@type': ['GeneralContractor', 'Organization'],
             '@id': base_url + '/#organization',
@@ -548,21 +587,22 @@ class WasmSiteConfig(models.Model):
             'image': base_url + '/wasm_website/static/src/img/arfa_logo_horizontal.png',
             'description': self.wasm_site_description(is_en),
             'email': self.contact_email or None,
-            'telephone': self.contact_phone or None,
+            'telephone': self.wasm_phone_e164(self.contact_phone) or None,
             'foundingDate': self.founding_year or None,
             'areaServed': {'@type': 'Country', 'name': self.service_area or 'Saudi Arabia'},
             'address': {
                 '@type': 'PostalAddress',
-                'streetAddress': self.wasm_t('contact_address', is_en) or None,
+                'streetAddress': one_line(self.wasm_t('contact_address', is_en)) or None,
                 'addressCountry': 'SA',
             },
             'knowsAbout': [s for s in services if s],
             'makesOffer': [{'@type': 'Offer', 'itemOffered': {'@type': 'Service', 'name': s}} for s in services if s],
             'sameAs': [v for k, v in self.wasm_social_links().items() if k != 'whatsapp'] or None,
         }
-        if self.contact_phone_secondary:
+        if self.wasm_phone_digits(self.contact_phone_secondary):
             org['contactPoint'] = [{
-                '@type': 'ContactPoint', 'contactType': 'sales', 'telephone': self.contact_phone_secondary,
+                '@type': 'ContactPoint', 'contactType': 'sales',
+                'telephone': self.wasm_phone_e164(self.contact_phone_secondary),
                 'email': self.contact_email or None, 'areaServed': 'SA', 'availableLanguage': ['ar', 'en'],
             }]
         graph = [
@@ -583,31 +623,40 @@ class WasmSiteConfig(models.Model):
             })
         return self._wasm_json_markup({'@context': 'https://schema.org', '@graph': graph})
 
-    def wasm_llms_text(self, base_url):
+    def wasm_llms_text(self, base_url=None):
         """/llms.txt — a plain Markdown brief that AI assistants and AI search engines can quote."""
         self.ensure_one()
         env = self.env
-        base_url = (base_url or '').rstrip('/')
+        base_url = self.wasm_base_url(base_url)
+
         name = self.brand_name_en or 'ARFA Construction & Specialized Systems'
         out = ['# %s (%s)' % (name, self.brand_name_ar or ''), '',
-               '> %s' % (self.seo_description_en or ''), '']
-        facts = [('Founded', self.founding_year), ('Service area', self.service_area),
-                 ('Completed projects', self.stat1_val), ('Years of experience', self.stat2_val),
-                 ('Executed area (m²)', self.stat3_val), ('Engineers & specialists', self.stat4_val),
-                 ('Phone', self.contact_phone), ('Mobile / WhatsApp', self.contact_phone_secondary),
-                 ('E-mail', self.contact_email), ('Address', self.contact_address_en),
-                 ('Working hours', self.contact_working_hours_en)]
-        out += ['## Key facts', ''] + ['- %s: %s' % (k, v) for k, v in facts if v] + ['']
+               '> %s' % one_line(self.seo_description_en), '']
+        facts = [('Founded', self.founding_year), ('Service area', self.service_area)]
+        facts += [(item.title_en or item.title_ar, item.value) for item in self.items('stat')]
+        facts += [('Phone', self.wasm_phone_e164(self.contact_phone)),
+                  ('Mobile / WhatsApp', self.wasm_phone_e164(self.contact_phone_secondary)),
+                  ('E-mail', self.contact_email), ('Address', self.contact_address_en),
+                  ('Working hours', self.contact_working_hours_en)]
+        out += ['## Key facts', ''] + ['- %s: %s' % (one_line(k), one_line(v)) for k, v in facts if k and v] + ['']
         out += ['## Services', '']
-        for i in range(1, 9):
-            title = self['srv%d_title_en' % i]
-            if title:
-                url = self['srv%d_url' % i] or '/services'
-                out.append('- [%s](%s%s): %s' % (title, base_url, url, self['srv%d_desc_en' % i] or ''))
+        for service in env['wasm.service'].sudo().with_context(lang='en_US').search([('active', '=', True)], order='sequence, id'):
+            out.append('- [%s](%s%s): %s' % (one_line(service.name), base_url, service.website_url,
+                                             one_line(service.short_description)))
         out += ['', '## Projects', '']
-        for project in env['wasm.project'].sudo().search([('active', '=', True)], limit=50):
-            bits = [b for b in (project.location, project.client_name, project.scope_of_work) if b]
-            out.append('- [%s](%s/projects/%s)%s' % (project.name, base_url, project.id, (': ' + ' · '.join(bits)) if bits else ''))
+        for project in env['wasm.project'].sudo().with_context(lang='en_US').search(
+                [('active', '=', True)], order='sequence, id desc', limit=50):
+            bits = [one_line(b) for b in (project.location, project.client_name, project.scope_of_work) if b]
+            out.append('- [%s](%s/projects/%s)%s' % (one_line(project.name), base_url, project.id,
+                                                    (': ' + ' · '.join(bits)) if bits else ''))
+        articles = env['wasm.news'].sudo().search([('active', '=', True)], order='date desc, id desc', limit=30)
+        if articles:
+            out += ['', '## News', '']
+            for article in articles:
+                title = one_line(article.title_en or article.name)
+                summary = self._wasm_shorten(article.summary_en or article.summary or '', 200)
+                out.append('- [%s](%s/news/%s) (%s)%s' % (title, base_url, article.id, article.date or '',
+                                                         (': ' + summary) if summary else ''))
         out += ['', '## Main pages', '',
                 '- [About](%s/about)' % base_url, '- [Services](%s/services)' % base_url,
                 '- [Projects](%s/projects)' % base_url, '- [News](%s/news)' % base_url,

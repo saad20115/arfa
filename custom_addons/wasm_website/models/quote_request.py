@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import uuid
 import logging
+import uuid
+from datetime import timedelta
 
 from markupsafe import escape
-from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -82,6 +82,33 @@ class WasmQuoteRequest(models.Model):
     ], string='حالة الطلب', default='new', tracking=True, required=True)
 
     notes = fields.Text(string='ملاحظات سريعة / متابعة داخلية')
+    source = fields.Selection([
+        ('quote', 'طلب عرض سعر'),
+        ('contact', 'رسالة من صفحة التواصل'),
+    ], string='مصدر الطلب', default='quote', required=True, tracking=True,
+        help='يحدد بداية الرقم المرجعي: RFQ لطلبات عروض الأسعار و MSG لرسائل صفحة التواصل')
+
+    client_ip = fields.Char(string='عنوان IP للمرسل', readonly=True, copy=False, index=True,
+                            help='يُستخدم للحد من الطلبات المتكررة من نفس الجهاز (حماية من الرسائل المزعجة)')
+
+    _REF_TYPES = {'quote': 'RFQ', 'contact': 'MSG'}
+
+    @api.model
+    def wasm_recent_count_from_ip(self, ip, minutes=10):
+        """Number of website requests sent from ``ip`` during the last ``minutes``."""
+        if not ip:
+            return 0
+        since = fields.Datetime.now() - timedelta(minutes=minutes)
+        return self.sudo().with_context(active_test=False).search_count(
+            [('client_ip', '=', ip), ('create_date', '>=', since)])
+
+    @api.model
+    def _wasm_new_reference(self, source):
+        """ARFA-RFQ-2610-0063: type (RFQ quote / MSG contact message), year+month, running number."""
+        number = self.env['ir.sequence'].next_by_code('wasm.quote.request') or '0'
+        number = ''.join(ch for ch in number if ch.isdigit()) or '0'
+        return 'ARFA-%s-%s-%s' % (self._REF_TYPES.get(source, 'RFQ'),
+                                  fields.Date.context_today(self).strftime('%y%m'), number.zfill(4))
 
     @api.depends('attachment_ids')
     def _compute_attachment_count(self):
@@ -92,16 +119,22 @@ class WasmQuoteRequest(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if not vals.get('name') or vals['name'] == 'New':
-                vals['name'] = self.env['ir.sequence'].next_by_code('wasm.quote.request') or 'New'
+                vals['name'] = self._wasm_new_reference(vals.get('source') or 'quote')
             if not vals.get('access_token'):
                 vals['access_token'] = str(uuid.uuid4())
         records = super().create(vals_list)
-        for rec in records:
+        # The website controller sends the notifications itself once the uploaded files are linked
+        # (otherwise the e-mail would always say "0 attachments").
+        if not self.env.context.get('wasm_defer_notifications'):
+            records._wasm_notify()
+        return records
+
+    def _wasm_notify(self):
+        for rec in self:
             try:
                 rec.action_send_email_notifications()
             except Exception as e:
                 _logger.error("Error triggering email notification for record %s: %s", rec.name, str(e))
-        return records
 
     def action_send_email_notifications(self):
         """Send automatic emails to Target Admin & Customer with Unique Reference Number via Odoo Mail Server."""
@@ -133,7 +166,8 @@ class WasmQuoteRequest(models.Model):
             # 1. Admin / Company Notification Email
             if site_config.enable_email_notifications and site_config.target_notification_email:
                 admin_target_email = site_config.target_notification_email.strip()
-                admin_subject = f"[إشعار طلب جديد {req.name}] - {(req.customer_name or '')[:80]} ({proj_type_lbl})"
+                subject_name = ' '.join((req.customer_name or '').split())[:80]   # no CR/LF in headers
+                admin_subject = f"[إشعار طلب جديد {req.name}] - {subject_name} ({proj_type_lbl})"
                 
                 admin_body_html = f"""
                 <div style="font-family: 'Tajawal', 'Alexandria', Arial, sans-serif; direction: rtl; text-align: right; background-color: #f8fafc; padding: 25px; color: #1e293b;">
@@ -211,7 +245,7 @@ class WasmQuoteRequest(models.Model):
                     'auto_delete': False,
                 }
                 try:
-                    mail = self.env['mail.mail'].sudo().create(admin_mail_values)
+                    self.env['mail.mail'].sudo().create(admin_mail_values)
                     # Removed .send() to allow async processing via Odoo mail queue
                     _logger.info("Admin notification email queued for %s to %s", req.name, admin_target_email)
                 except Exception as e:
@@ -258,7 +292,7 @@ class WasmQuoteRequest(models.Model):
                     'auto_delete': False,
                 }
                 try:
-                    cust_mail = self.env['mail.mail'].sudo().create(cust_mail_values)
+                    self.env['mail.mail'].sudo().create(cust_mail_values)
                     # Removed .send() to allow async processing via Odoo mail queue
                     _logger.info("Customer confirmation email queued for %s to %s", req.name, req.email)
                 except Exception as e:

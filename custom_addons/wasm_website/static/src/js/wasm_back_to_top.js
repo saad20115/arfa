@@ -10,10 +10,27 @@
 
     var R = 24, C = 2 * Math.PI * R;
 
+    // The page may scroll on <html>, <body> (this theme: body has overflow:auto) or #wrapwrap.
+    function scrollables() {
+        var list = [], cands = [document.getElementById('wrapwrap'), document.body, document.scrollingElement || document.documentElement];
+        cands.forEach(function (el) {
+            if (!el || list.indexOf(el) !== -1) return;
+            var oy = getComputedStyle(el).overflowY;
+            var root = el === document.scrollingElement || el === document.documentElement;
+            if (el.scrollHeight > el.clientHeight + 2 && (root || oy === 'auto' || oy === 'scroll')) list.push(el);
+        });
+        return list;
+    }
     function scroller() {
-        var w = document.getElementById('wrapwrap');
-        if (w && w.scrollHeight > w.clientHeight + 2 && getComputedStyle(w).overflowY !== 'visible') return w;
-        return document.scrollingElement || document.documentElement;
+        var list = scrollables();
+        for (var i = 0; i < list.length; i++) { if (list[i].scrollTop > 0) return list[i]; }
+        return list[0] || document.scrollingElement || document.documentElement;
+    }
+    function toTop() {
+        scrollables().forEach(function (el) {
+            if (el.scrollTo) { el.scrollTo({ top: 0, behavior: 'smooth' }); } else { el.scrollTop = 0; }
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function boot() {
@@ -21,7 +38,9 @@
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'arfa-totop';
-        btn.setAttribute('aria-label', document.documentElement.lang && document.documentElement.lang.indexOf('ar') === 0 ? 'العودة للأعلى' : 'Back to top');
+        // label = backend text "layout.totop_aria", rendered on the floating buttons container
+        var holder = document.querySelector('[data-totop-label]');
+        btn.setAttribute('aria-label', (holder && holder.getAttribute('data-totop-label')) || 'Back to top');
         btn.innerHTML =
             '<svg class="arfa-totop-ring" viewBox="0 0 56 56" aria-hidden="true">' +
             '<circle class="arfa-totop-track" cx="28" cy="28" r="' + R + '"></circle>' +
@@ -43,15 +62,20 @@
         }
         function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
 
+        // capture phase: catches scrolling of <html>, <body> or #wrapwrap alike
+        document.addEventListener('scroll', onScroll, { passive: true, capture: true });
         window.addEventListener('scroll', onScroll, { passive: true });
-        var w = document.getElementById('wrapwrap');
-        if (w) w.addEventListener('scroll', onScroll, { passive: true });
         window.addEventListener('resize', onScroll);
-        btn.addEventListener('click', function () {
-            var el = scroller();
-            if (el.scrollTo) { el.scrollTo({ top: 0, behavior: 'smooth' }); } else { el.scrollTop = 0; }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        // footer "Back to top" button(s) use the same smooth scroll
+        document.addEventListener('click', function (ev) {
+            var f = ev.target.closest && ev.target.closest('.arfa-footer-totop');
+            if (!f) return;
+            ev.preventDefault();
+            toTop();
+            var target = document.querySelector('header a, #wrapwrap a');
+            if (target) setTimeout(function () { target.focus({ preventScroll: true }); }, 600);
         });
+        btn.addEventListener('click', toTop);
         update();
     }
 

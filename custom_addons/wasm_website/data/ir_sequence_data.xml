@@ -4,8 +4,8 @@
         <record id="seq_wasm_quote_request" model="ir.sequence">
             <field name="name">تسلسل طلبات عروض الأسعار - شركة عرفة</field>
             <field name="code">wasm.quote.request</field>
-            <field name="prefix">REQ-ARFA-%(year)s-</field>
-            <field name="padding">5</field>
+            <field name="prefix"></field>
+            <field name="padding">4</field>
             <field name="company_id" eval="False"/>
         </record>
     </data>

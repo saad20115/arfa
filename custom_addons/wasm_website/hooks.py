@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from odoo import api, SUPERUSER_ID
 
 def post_init_hook(env):
     """
@@ -60,3 +59,11 @@ def post_init_hook(env):
                     'website_id': 1,
                 })
 
+
+    # 2. Editable website content (texts, cards, services, galleries, news)
+    from .content_setup import wasm_install_content, wasm_security_hardening, wasm_seo_housekeeping
+    wasm_install_content(env)
+
+    # 3. Same hardening / sitemap clean-up as the 19.0.2.2.0 migration
+    wasm_security_hardening(env)
+    wasm_seo_housekeeping(env)

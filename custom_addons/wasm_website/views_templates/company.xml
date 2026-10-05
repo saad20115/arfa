@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Shared helpers of this file
+         ============================================================ -->
+    <!-- Editable paragraph: line breaks kept, words between ** ** shown in <strong>.
+         Params: rt_text (string), rt_cls (list of classes for the 1st, 2nd... highlight; the last one repeats). -->
+    <template id="company_rich_text" name="Wasm Rich Text (bold markers)"><t t-foreach="(rt_text or '').split('\n')" t-as="rt_line"><br t-if="not rt_line_first"/><t t-foreach="rt_line.split('**')" t-as="rt_part"><strong t-if="rt_part_index % 2" t-att-class="rt_cls and rt_cls[rt_part_index // 2 if rt_part_index // 2 &lt; len(rt_cls) else -1] or None" t-out="rt_part"/><t t-else="" t-out="rt_part"/></t></t></template>
+
+    <!-- Department cards (wasm.content.item section "department"), used by /contact-team and /contactus -->
+    <template id="contact_departments_section" name="Wasm Contact Departments Cards">
+        <t t-set="departments" t-value="site_config.items('department')"/>
+        <section class="py-5" t-if="departments">
+            <div class="container">
+                <div class="row g-4">
+                    <t t-foreach="departments" t-as="dept">
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center wasm-hover-card">
+                                <div class="fs-1 text-warning mb-3" t-if="dept.icon"><i t-attf-class="fa #{dept.icon}"></i></div>
+                                <h2 class="h4 fw-bold mb-2" t-out="dept.t('title')"/>
+                                <p class="text-muted small mb-4" t-if="dept.t('desc')" t-out="dept.t('desc')"/>
+                                <a t-if="dept.link_url and dept.t('link_label')" t-att-href="dept.link_url" t-attf-class="btn #{'btn-warning' if dept_first else 'btn-outline-warning'} rounded-pill fw-bold#{' text-white' if dept_first else ''}" t-out="dept.t('link_label')"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </section>
+    </template>
+
+    <!-- ============================================================
+         2. ABOUT PAGE (Bilingual &amp; Dropzone Enabled - Homepage Harmonized)
+         ============================================================ -->
+    <template id="about_page_template" name="About Us - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="aboutus">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="is_en" t-value="site_config.is_en()"/>
+            <div id="wrap" class="oe_structure oe_empty bg-white">
+                <div class="oe_structure" id="oe_structure_about_top"/>
+                
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('about.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('about.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('about.hero.subtitle')"/>
+                </t>
+
+                <div class="oe_structure" id="oe_structure_about_middle"/>
+
+                <!-- Main Story & Teamwork Section -->
+                <section class="pt-5 pb-4 bg-white">
+                    <div class="container pt-3">
+                        <div class="row align-items-center g-5">
+                            <!-- Text Content Column -->
+                            <div class="col-lg-6">
+                                <div class="pe-lg-3">
+                                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 shadow-sm" style="font-size: 0.85rem; letter-spacing: 1px;" t-out="site_config.tx('about.story.badge')"/>
+                                    <h2 class="wasm-section-title text-start mb-3" style="font-size: 2.2rem;" t-out="site_config.tx('about.story.title')"/>
+
+                                    <p class="fs-5 lh-lg mb-3 text-dark"><t t-call="wasm_website.company_rich_text"><t t-set="rt_text" t-value="site_config.tx('about.story.p1')"/><t t-set="rt_cls" t-value="['text-warning fw-bold', 'text-dark fw-bold']"/></t></p>
+
+                                    <p class="fs-6 mb-3 text-muted fw-medium" t-out="site_config.txb('about.story.intro')"/>
+
+                                    <div class="p-3 rounded-3 mb-4 shadow-sm bg-light" style="border-left: 4px solid #E8A317 !important;">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-check-circle fs-4 text-warning"/>
+                                            <span class="fw-bold fs-5 text-dark" t-out="site_config.tx('about.story.highlight')"/>
+                                        </div>
+                                    </div>
+
+                                    <p class="fs-6 fst-italic mb-0 text-muted" t-out="site_config.txb('about.story.closing')"/>
+                                </div>
+                            </div>
+
+                            <!-- Team Image Column -->
+                            <div class="col-lg-6">
+                                <div class="position-relative">
+                                    <div class="card h-100 border-0 rounded-4 overflow-hidden shadow-lg bg-white p-2 wasm-hover-card">
+                                        <img t-att-src="site_config.wasm_img_url('about_image')" t-att-alt="site_config.tx('about.story.image_alt')" decoding="async" width="1200" height="672" class="img-fluid rounded-4 w-100" style="object-fit: cover; max-height: 480px; transition: transform 0.4s ease;"/>
+                                    </div>
+                                    <div class="position-absolute bottom-0 start-0 m-4 p-3 text-white rounded-3 shadow-lg" style="background-color: rgba(25, 39, 84, 0.92) !important; backdrop-filter: blur(8px); max-width: 280px; border: 1px solid rgba(232, 163, 23, 0.3);">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0 bg-warning text-dark" style="width: 45px; height: 45px;">
+                                                <i class="fa fa-handshake-o fs-5"/>
+                                            </div>
+                                            <div>
+                                                <div class="h6 fw-bold mb-0 text-warning" style="font-size: 0.95rem; line-height: 1.3;" t-out="site_config.tx('about.story.overlay_title')"/>
+                                                <small class="text-white-50" style="font-size: 0.78rem;" t-out="site_config.tx('about.story.overlay_subtitle')"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Our Areas of Expertise Section (Harmonized with Homepage Card Styling) -->
+                <section class="pt-4 pb-5 bg-white position-relative border-top">
+                    <div class="container pt-2 pb-4">
+                        <div class="text-center mb-5">
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-2 shadow-sm" style="font-size: 0.85rem; letter-spacing: 1px;" t-out="site_config.tx('about.expertise.badge')"/>
+                            <h2 class="wasm-section-title mb-2" t-out="site_config.tx('about.expertise.title')"/>
+                            <p class="fs-5 mx-auto text-muted fw-medium" style="max-width: 650px;" t-out="site_config.txb('about.expertise.subtitle')"/>
+                        </div>
+
+                        <t t-set="expertise_items" t-value="site_config.items('expertise')"/>
+                        <div class="row g-4" t-if="expertise_items">
+                            <t t-foreach="expertise_items" t-as="item">
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 border-0 rounded-4 shadow-sm bg-white p-4 wasm-hover-card">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <div class="rounded-circle p-3 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm bg-light text-warning border" style="width: 54px; height: 54px;">
+                                                <i t-attf-class="fa #{item.icon or 'fa-check'} fs-4"/>
+                                            </div>
+                                            <div>
+                                                <h3 class="h6 fw-bold mb-1 lh-base text-dark" t-out="item.t('title')"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- Closing Statement Banner (Harmonized with Corporate Theme) -->
+                        <div class="mt-5 p-4 p-md-5 rounded-4 text-white shadow-lg" style="background: linear-gradient(135deg, #192754 0%, #22305E 100%) !important; border: 1px solid rgba(232, 163, 23, 0.3);">
+                            <div class="row align-items-center">
+                                <div class="col-lg-9 mb-3 mb-lg-0">
+                                    <p class="fs-5 mb-0 lh-lg text-white"><t t-call="wasm_website.company_rich_text"><t t-set="rt_text" t-value="site_config.tx('about.cta.text')"/><t t-set="rt_cls" t-value="['text-warning']"/></t></p>
+                                </div>
+                                <div class="col-lg-3 text-lg-end">
+                                    <a href="/contactus" class="btn btn-warning rounded-pill px-4 py-3 fw-bold shadow-sm text-dark">
+                                        <t t-out="site_config.tx('about.cta.button')"/>
+                                        <i class="fa fa-arrow-right ms-2" t-if="is_en"/>
+                                        <i class="fa fa-arrow-left ms-2" t-else=""/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="oe_structure" id="oe_structure_about_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         5. CONTACT TEAM PAGE (Bilingual &amp; Dropzone Enabled)
+         ============================================================ -->
+    <template id="contact_team_page_template" name="Contact Team - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="contact_team">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_contact_team_top"/>
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('contact.team.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('contact.team.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('contact.team.hero.subtitle')"/>
+                </t>
+                <div class="oe_structure" id="oe_structure_contact_team_middle"/>
+                <t t-call="wasm_website.contact_departments_section"/>
+                <div class="oe_structure" id="oe_structure_contact_team_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         8. CONTACT PAGE (website.contactus Override) - rendered by /contactus
+            through contact_page_template (t-call website.contactus)
+         ============================================================ -->
+    <template id="wasm_contactus_override" inherit_id="website.contactus" name="Wasm Contact Us Layout" priority="1">
+        <xpath expr="//div[@id='wrap']" position="replace">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="contact_phone" t-value="site_config.contact_phone"/>
+            <t t-set="contact_email" t-value="site_config.contact_email"/>
+            <t t-set="contact_hours" t-value="site_config.wasm_t('contact_working_hours')"/>
+            <t t-set="whatsapp_url" t-value="site_config.wasm_social_links().get('whatsapp')"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_contact_top"/>
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('contact.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('contact.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('contact.hero.subtitle')"/>
+                </t>
+                <div class="oe_structure" id="oe_structure_contact_middle"/>
+                <!-- Specialized departments (same cards as /contact-team) -->
+                <t t-call="wasm_website.contact_departments_section"/>
+                <section class="py-5">
+                    <div class="container">
+                        <div class="row g-4 mb-5 justify-content-center" t-if="contact_phone or whatsapp_url or contact_email or contact_hours">
+                            <div class="col-md-4" t-if="contact_phone or whatsapp_url">
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 wasm-hover-card">
+                                    <div class="fs-1 text-warning mb-2"><i class="fa fa-phone"></i></div>
+                                    <h2 class="h5 fw-bold" t-out="site_config.tx('contact.card.phone_title')"/>
+                                    <p class="text-muted dir-ltr mb-2" t-if="contact_phone" t-out="contact_phone"/>
+                                    <a t-if="whatsapp_url" t-att-href="whatsapp_url" target="_blank" rel="noopener" class="btn btn-success btn-sm rounded-pill" t-out="site_config.tx('contact.card.whatsapp_btn')"/>
+                                </div>
+                            </div>
+                            <div class="col-md-4" t-if="contact_email">
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 wasm-hover-card">
+                                    <div class="fs-1 text-warning mb-2"><i class="fa fa-envelope"></i></div>
+                                    <h2 class="h5 fw-bold" t-out="site_config.tx('contact.card.email_title')"/>
+                                    <p class="text-muted" t-out="contact_email"/>
+                                    <a t-att-href="'mailto:' + contact_email" class="btn btn-outline-warning btn-sm rounded-pill" t-out="site_config.tx('contact.card.email_btn')"/>
+                                </div>
+                            </div>
+                            <div class="col-md-4" t-if="contact_hours">
+                                <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 wasm-hover-card">
+                                    <div class="fs-1 text-warning mb-2"><i class="fa fa-clock-o"></i></div>
+                                    <h2 class="h5 fw-bold" t-out="site_config.tx('contact.card.hours_title')"/>
+                                    <p class="text-muted mb-0" t-out="contact_hours"/>
+                                    <p class="small text-secondary mt-1" t-if="site_config.tx('contact.card.hours_off')" t-out="site_config.tx('contact.card.hours_off')"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Contact Form & Mail Integration Block -->
+                        <div class="row justify-content-center">
+                            <div class="col-lg-10">
+                                <div class="card border-0 shadow-lg rounded-4 p-4 p-md-5 bg-white border-top border-4 border-warning">
+                                    <div class="text-center mb-4">
+                                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-2" t-out="site_config.tx('contact.form.badge')"/>
+                                        <h2 class="h3 fw-bold text-dark" t-out="site_config.tx('contact.form.title')"/>
+                                        <p class="text-muted" t-out="site_config.txb('contact.form.intro')"/>
+                                    </div>
+
+                                    <form action="/contactus/submit" method="post" class="wasm-form-validation">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <!-- anti-spam: honeypot (hidden from people) + fill-time stamp -->
+                                        <div class="arfa-hp" aria-hidden="true"><label>Website<input type="text" name="website_url" tabindex="-1" autocomplete="off"/></label></div>
+                                        <input type="hidden" name="form_ts" class="arfa-form-ts" t-att-value="site_config.wasm_form_token()"/>
+                                        <t t-set="form_error" t-value="request.params.get('error')"/>
+                                        <div t-if="form_error" class="alert alert-warning arfa-form-alert" role="alert">
+                                            <t t-if="form_error == 'missing_fields'" t-out="site_config.tx('contact.form.err_missing')"/>
+                                            <t t-elif="form_error == 'invalid_contact'" t-out="site_config.tx('contact.form.err_contact')"/>
+                                            <t t-elif="form_error == 'rate_limit'" t-out="site_config.tx('contact.form.err_rate')"/>
+                                            <t t-else="" t-out="site_config.tx('contact.form.err_generic')"/>
+                                        </div>
+                                        
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="contact_customer_name" t-out="site_config.tx('contact.form.name_label')"/>
+                                                <input id="contact_customer_name" autocomplete="name" type="text" name="customer_name" class="form-control wasm-form-control" t-att-placeholder="site_config.tx('contact.form.name_ph')" required="required"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="contact_phone" t-out="site_config.tx('contact.form.phone_label')"/>
+                                                <input id="contact_phone" autocomplete="tel" type="tel" name="phone" class="form-control wasm-form-control" t-att-placeholder="site_config.tx('contact.form.phone_ph')" required="required"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="contact_email" t-out="site_config.tx('contact.form.email_label')"/>
+                                                <input id="contact_email" autocomplete="email" type="email" name="email" class="form-control wasm-form-control" t-att-placeholder="site_config.tx('contact.form.email_ph')" required="required"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="contact_project_location" t-out="site_config.tx('contact.form.location_label')"/>
+                                                <input id="contact_project_location" autocomplete="address-level2" type="text" name="project_location" class="form-control wasm-form-control" t-att-placeholder="site_config.tx('contact.form.location_ph')" required="required"/>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="contact_department" t-out="site_config.tx('contact.form.dept_label')"/>
+                                                <!-- option values must stay as the controller expects (ALLOWED_DEPARTMENTS) -->
+                                                <select id="contact_department" name="department" class="form-select wasm-form-control">
+                                                    <option value="sales" t-out="site_config.tx('contact.form.dept_sales')"/>
+                                                    <option value="engineering" t-out="site_config.tx('contact.form.dept_engineering')"/>
+                                                    <option value="projects" t-out="site_config.tx('contact.form.dept_projects')"/>
+                                                    <option value="management" t-out="site_config.tx('contact.form.dept_management')"/>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-bold" for="contact_project_type" t-out="site_config.tx('contact.form.type_label')"/>
+                                                <!-- option values must stay as the controller expects (ALLOWED_PROJECT_TYPES) -->
+                                                <select id="contact_project_type" name="project_type" class="form-select wasm-form-control">
+                                                    <option value="commercial" t-out="site_config.tx('contact.form.type_commercial')"/>
+                                                    <option value="residential" t-out="site_config.tx('contact.form.type_residential')"/>
+                                                    <option value="industrial" t-out="site_config.tx('contact.form.type_industrial')"/>
+                                                    <option value="infrastructure" t-out="site_config.tx('contact.form.type_infrastructure')"/>
+                                                    <option value="renovation" t-out="site_config.tx('contact.form.type_renovation')"/>
+                                                </select>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label fw-bold" for="contact_details" t-out="site_config.tx('contact.form.details_label')"/>
+                                                <textarea id="contact_details" autocomplete="off" name="details" rows="4" class="form-control wasm-form-control" t-att-placeholder="site_config.tx('contact.form.details_ph')" required="required"></textarea>
+                                            </div>
+                                            <div class="col-12 text-center mt-4">
+                                                <button type="submit" class="btn btn-warning rounded-pill px-5 py-3 fw-bold text-dark fs-5 shadow-lg">
+                                                    <i class="fa fa-paper-plane me-2"></i>
+                                                    <t t-out="site_config.tx('contact.form.submit')"/>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <div class="oe_structure" id="oe_structure_contact_bottom"/>
+            </div>
+        </xpath>
+    </template>
+
+    <template id="contact_page_template" name="Contact Us - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.contactus"/>
+    </template>
+
+    <!-- ============================================================
+         9. LOCATION PAGE (Bilingual &amp; Dropzone Enabled)
+         ============================================================ -->
+    <template id="location_page_template" name="Location - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="location">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_location_top"/>
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('location.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('location.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.wasm_t('contact_address')"/>
+                </t>
+                <div class="oe_structure" id="oe_structure_location_middle"/>
+                <section class="py-5" t-if="site_config.map_embed_url or site_config.map_link_url">
+                    <div class="container">
+                        <div class="bg-white p-4 rounded-4 shadow-lg mb-4" t-if="site_config.map_embed_url">
+                            <div class="ratio ratio-21x9 rounded-3 overflow-hidden">
+                                <iframe t-att-src="site_config.map_embed_url" t-att-title="site_config.tx('location.map_title')" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                            </div>
+                        </div>
+                        <div class="text-center" t-if="site_config.map_link_url">
+                            <a t-att-href="site_config.map_link_url" target="_blank" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold text-white shadow">
+                                <i class="fa fa-map-marker me-2"></i>
+                                <span t-out="site_config.tx('location.directions_btn')"/>
+                            </a>
+                        </div>
+                    </div>
+                </section>
+                <div class="oe_structure" id="oe_structure_location_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         9. OUR COMPANY PAGE (Group & Sister Companies + Head Office Location)
+         ============================================================ -->
+    <template id="our_company_page_template" name="Our Company - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="our_company">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <div id="wrap" class="oe_structure oe_empty bg-light">
+                <div class="oe_structure" id="oe_structure_our_company_top"/>
+
+                <!-- Fluid Curved Hero Banner Header -->
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('company.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('company.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('company.hero.subtitle')"/>
+                </t>
+
+                <div class="oe_structure" id="oe_structure_our_company_middle"/>
+
+                <!-- Group Divisions & Sister Companies Cards -->
+                <t t-set="divisions" t-value="site_config.items('division')"/>
+                <section class="py-5 bg-white border-bottom" t-if="divisions">
+                    <div class="container">
+                        <div class="text-center mb-5">
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-2 shadow-sm" style="font-size: 0.85rem;">
+                                <span t-out="site_config.tx('company.divisions.badge')"/>
+                            </span>
+                            <h2 class="fw-bold text-dark display-6 mb-2">
+                                <span t-out="site_config.tx('company.divisions.title')"/>
+                            </h2>
+                            <div class="mx-auto bg-warning" style="width: 80px; height: 3px; border-radius: 2px;"></div>
+                        </div>
+                        <div class="row g-4">
+                            <t t-foreach="divisions" t-as="division">
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center wasm-hover-card bg-light">
+                                        <div class="fs-1 text-warning mb-3" t-if="division.icon"><i t-attf-class="fa #{division.icon}"></i></div>
+                                        <span t-if="division.t('badge')" class="badge bg-warning text-dark rounded-pill fw-bold mb-2 align-self-center" t-out="division.t('badge')"/>
+                                        <h3 class="h5 fw-bold text-dark mb-2" t-out="division.t('title')"/>
+                                        <p class="text-muted small" t-if="division.t('desc')" t-out="division.t('desc')"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Official Head Office & Location Section (Gulf Center Kaki - Jeddah) -->
+                <t t-set="hq_phone" t-value="site_config.contact_phone_secondary"/>
+                <t t-set="hq_email" t-value="site_config.contact_email"/>
+                <section class="py-5 bg-light">
+                    <div class="container">
+                        <div class="card border-0 shadow-lg rounded-4 overflow-hidden bg-white">
+                            <div class="row g-0 align-items-stretch">
+                                <div class="col-lg-5 p-5 d-flex flex-column justify-content-center">
+                                    <div class="mb-3" t-if="site_config.tx('company.hq.badge')">
+                                        <span class="badge bg-primary text-white px-3 py-2 rounded-pill fw-bold" style="font-size: 0.8rem;">
+                                            <span t-out="site_config.tx('company.hq.badge')"/>
+                                        </span>
+                                    </div>
+                                    <h3 class="fw-bold text-dark mb-2" t-out="site_config.tx('company.hq.name')"/>
+                                    <h4 class="text-warning fw-bold fs-5 mb-4" t-if="site_config.tx('company.hq.building')" t-out="site_config.tx('company.hq.building')"/>
+
+                                    <div class="d-flex flex-column gap-3 fs-6 text-muted mb-4">
+                                        <div class="d-flex align-items-start gap-3" t-if="site_config.tx('company.hq.address1')">
+                                            <span class="text-warning fs-5"><i class="fa fa-map-marker"/></span>
+                                            <span t-out="site_config.txb('company.hq.address1')"/>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-3" t-if="site_config.tx('company.hq.address2')">
+                                            <span class="text-warning fs-5"><i class="fa fa-building-o"/></span>
+                                            <span t-out="site_config.txb('company.hq.address2')"/>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-3" t-if="hq_phone">
+                                            <span class="text-warning fs-5"><i class="fa fa-phone"/></span>
+                                            <span class="dir-ltr" t-out="hq_phone"/>
+                                        </div>
+                                        <div class="d-flex align-items-start gap-3" t-if="hq_email">
+                                            <span class="text-warning fs-5"><i class="fa fa-envelope"/></span>
+                                            <span t-out="hq_email"/>
+                                        </div>
+                                    </div>
+
+                                    <div t-if="site_config.hq_map_link_url">
+                                        <a t-att-href="site_config.hq_map_link_url" target="_blank" rel="noopener" class="btn btn-warning rounded-pill px-4 py-3 fw-bold text-white shadow-sm">
+                                            <i class="fa fa-location-arrow me-2"/>
+                                            <span t-out="site_config.tx('company.hq.directions_btn')"/>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="col-lg-7" style="min-height: 420px;" t-if="site_config.hq_map_embed_url">
+                                    <iframe t-att-src="site_config.hq_map_embed_url" t-att-title="site_config.tx('company.hq.map_title')" class="w-100 h-100 border-0" style="min-height: 420px;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="oe_structure" id="oe_structure_our_company_bottom"/>
+            </div>
+        </t>
+    </template>
+</odoo>

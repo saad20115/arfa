@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Shared: video thumbnail (cover image / YouTube thumbnail / first frame) + play badge.
+         Expects: thumb_poster, thumb_src, thumb_embed, thumb_alt, thumb_class (optional), site_config.
+         ============================================================ -->
+    <template id="wasm_media_thumb" name="Wasm Video Thumbnail">
+        <t t-set="thumb_yt" t-value="'youtube.com/embed/' in (thumb_embed or '') and thumb_embed.split('/embed/')[1].split('?')[0] or ''"/>
+        <img t-if="thumb_poster" t-att-src="thumb_poster" t-att-alt="thumb_alt" t-att-class="thumb_class or None" loading="lazy" decoding="async"/>
+        <img t-elif="thumb_yt" t-attf-src="https://i.ytimg.com/vi/#{thumb_yt}/hqdefault.jpg" t-att-alt="thumb_alt" t-att-class="thumb_class or None" loading="lazy" decoding="async"/>
+        <video t-elif="thumb_src" t-att-src="thumb_src + '#t=0.1'" t-att-class="thumb_class or None" muted="muted" preload="metadata" playsinline="playsinline" tabindex="-1" aria-hidden="true"/>
+        <span class="arfa-video-play" aria-hidden="true"><i class="fa fa-play" t-att-title="site_config.tx('projects.video.play')"/></span>
+    </template>
+
+    <!-- ============================================================
+         3. SERVICES PAGE (Bilingual &amp; Dropzone Enabled)
+         ============================================================ -->
+    <template id="services_page_template" name="Services - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="services">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="title" t-value="site_config.tx('services.page_title')"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_services_top"/>
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('services.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('services.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('services.hero.subtitle')"/>
+                </t>
+                <div class="oe_structure" id="oe_structure_services_middle"/>
+                <section class="py-5">
+                    <div class="container">
+                        <div class="row g-4">
+                            <t t-foreach="services" t-as="srv">
+                                <div class="col-md-6">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden wasm-hover-card bg-white d-flex flex-column justify-content-between">
+                                        <div class="position-relative overflow-hidden" style="height: 180px;">
+                                            <img t-att-src="srv.wasm_image_url()" t-att-alt="srv.name" loading="lazy" decoding="async" width="600" height="400" class="w-100 h-100" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            <div class="position-absolute bottom-0 start-0 m-3 fs-3 text-warning bg-white px-3 py-1 rounded-3 shadow-sm">
+                                                <i t-attf-class="fa #{srv.icon}"></i>
+                                            </div>
+                                        </div>
+                                        <div class="p-4 d-flex flex-column h-100 justify-content-between">
+                                            <div>
+                                                <a t-att-href="srv.website_url" class="text-decoration-none"><h2 class="h4 fw-bold text-dark mb-2" t-out="srv.name"/></a>
+                                                <p class="text-muted small mb-3" t-out="srv.short_description"/>
+                                            </div>
+                                            <div>
+                                                <a t-attf-href="/quote?service_id=#{srv.id}" class="btn btn-warning btn-sm rounded-pill fw-bold text-dark px-4 shadow-sm" t-out="site_config.tx('services.card.quote_btn')"/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+                <div class="oe_structure" id="oe_structure_services_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         4. PROJECTS PAGE (Bilingual &amp; Dropzone Enabled)
+         ============================================================ -->
+    <template id="projects_page_template" name="Projects - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="projects">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <!-- is_en only drives the marquee direction (layout), never the content -->
+            <t t-set="is_en" t-value="site_config.is_en()"/>
+            <t t-set="title" t-value="site_config.tx('projects.page_title')"/>
+            <div id="wrap" class="oe_structure oe_empty">
+                <div class="oe_structure" id="oe_structure_projects_top"/>
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="site_config.tx('projects.hero.badge')"/>
+                    <t t-set="title_text" t-value="site_config.tx('projects.hero.title')"/>
+                    <t t-set="subtitle_text" t-value="site_config.tx('projects.hero.subtitle')"/>
+                </t>
+                <div class="oe_structure" id="oe_structure_projects_middle"/>
+                <section class="py-5">
+                    <div class="container">
+                        <!-- Filter Bar & Company Profile Download Button -->
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-5 p-3 bg-light rounded-4 border shadow-sm">
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="/projects" t-attf-class="btn rounded-pill px-4 fw-bold #{'btn-warning text-white' if current_state == 'all' else 'btn-outline-secondary'}">
+                                    <t t-out="site_config.tx('projects.filter.all')"/>
+                                </a>
+                                <a href="/projects?state=completed" t-attf-class="btn rounded-pill px-4 fw-bold #{'btn-warning text-white' if current_state == 'completed' else 'btn-outline-secondary'}">
+                                    <t t-out="site_config.tx('projects.filter.completed')"/>
+                                </a>
+                                <a href="/projects?state=in_progress" t-attf-class="btn rounded-pill px-4 fw-bold #{'btn-warning text-white' if current_state == 'in_progress' else 'btn-outline-secondary'}">
+                                    <t t-out="site_config.tx('projects.filter.in_progress')"/>
+                                </a>
+                            </div>
+                            <div class="ms-auto">
+                                <a href="/company-profile" target="_blank" class="btn rounded-pill px-4 py-2-5 fw-bold shadow d-inline-flex align-items-center gap-2 wasm-hover-card" style="color: #192754 !important; background: linear-gradient(135deg, #E8A317 0%, #C98A0C 100%) !important; border: none !important; font-size: 0.92rem;">
+                                    <i class="fa fa-file-pdf-o fs-5 text-warning"/>
+                                    <span t-out="site_config.tx('projects.profile_btn')"/>
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Projects Cards Grid (Unified Identical Design) -->
+                        <div class="row g-4">
+                            <t t-foreach="projects" t-as="proj">
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden wasm-hover-card bg-white d-flex flex-column" style="transition: transform 0.3s ease, box-shadow 0.3s ease;">
+                                        <a t-attf-href="/projects/#{proj.id}" class="text-decoration-none d-block overflow-hidden position-relative" style="height: 220px;">
+                                            <img t-att-src="proj.wasm_main_image_url()" t-att-alt="site_config.tx('projects.card.img_alt')" loading="lazy" decoding="async" width="600" height="400" class="w-100 h-100" style="object-fit: cover; object-position: center; transition: transform 0.4s ease;"/>
+                                        </a>
+                                        <div class="card-body p-4 d-flex flex-column justify-content-between flex-grow-1">
+                                            <div>
+                                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                                    <span class="badge bg-warning text-dark fw-bold px-3 py-1-5 rounded-pill shadow-sm" style="font-size: 0.75rem;">
+                                                        <t t-out="proj.wasm_state_label(is_en)"/>
+                                                    </span>
+                                                    <span class="small text-warning fw-bold text-truncate ms-2" style="max-width: 60%;" t-att-title="proj.location">
+                                                        <i class="fa fa-map-marker me-1"/>
+                                                        <span t-out="proj.location"/>
+                                                    </span>
+                                                </div>
+                                                <a t-attf-href="/projects/#{proj.id}" class="text-decoration-none">
+                                                    <h2 class="h5 fw-bold text-dark mb-2" style="min-height: 48px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" t-out="proj.name"/>
+                                                </a>
+                                                <p class="text-muted small mb-3" style="min-height: 40px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" t-out="proj.description"/>
+                                            </div>
+                                            <div class="border-top pt-3 mt-auto d-flex flex-wrap justify-content-between align-items-center gap-2 small text-secondary arfa-card-meta">
+                                                <span class="text-nowrap">
+                                                    <i class="fa fa-area-chart me-1 text-warning"/>
+                                                    <span><t t-out="site_config.tx('projects.card.area')"/> </span>
+                                                    <strong class="text-dark"><t t-if="proj.area" t-out="'{:,.0f}'.format(proj.area)"/><t t-else="" t-out="site_config.tx('projects.card.na')"/> <t t-out="site_config.tx('projects.card.area_unit')"/></strong>
+                                                </span>
+                                                <span class="text-truncate text-end" style="max-width: 100%; min-width: 0;" t-att-title="proj.client_name">
+                                                    <i class="fa fa-building-o me-1 text-warning"/>
+                                                    <strong class="text-dark" t-out="proj.client_name or site_config.tx('projects.card.client_fallback')"/>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CONTINUOUS ANIMATED PHOTO GALLERY SECTION (photos + videos from the media gallery) -->
+                <t t-if="gallery">
+                    <section class="py-5 bg-light overflow-hidden border-top arfa-lb-root"
+                             t-att-data-lb-close="site_config.tx('projects.lightbox.close')"
+                             t-att-data-lb-prev="site_config.tx('projects.lightbox.prev')"
+                             t-att-data-lb-next="site_config.tx('projects.lightbox.next')">
+                        <div class="container mb-4 text-center">
+                            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-2 shadow-sm" style="font-size: 0.85rem;">
+                                <span t-out="site_config.tx('projects.gallery.badge')"/>
+                            </span>
+                            <h2 class="fw-bold text-dark display-6 mb-2">
+                                <span t-out="site_config.tx('projects.gallery.title')"/>
+                            </h2>
+                            <div class="mx-auto bg-warning" style="width: 80px; height: 3px; border-radius: 2px;"></div>
+                            <p class="text-muted fs-5 mt-3 mx-auto" style="max-width: 680px;">
+                                <span t-out="site_config.txb('projects.gallery.text')"/>
+                            </p>
+                        </div>
+
+                        <!-- Stepped Marquee Slider Track (Matches Homepage Motion) -->
+                        <div class="wasm-gallery-marquee-wrapper wasm-auto-slider py-3" t-att-data-direction="is_en and 'left' or 'right'">
+                            <div class="wasm-gallery-marquee-track d-flex gap-4">
+                                <t t-foreach="gallery" t-as="g_media">
+                                    <t t-if="g_media.wasm_is_video()">
+                                        <a t-if="g_media.wasm_video_src() or g_media.wasm_video_embed()"
+                                           class="wasm-gallery-card wasm-gallery-video arfa-lb-item d-block position-relative flex-shrink-0 rounded-4 overflow-hidden shadow-sm bg-white border"
+                                           style="width: 320px; height: 220px; transition: transform 0.3s ease, box-shadow 0.3s ease;"
+                                           t-att-href="g_media.wasm_video_src() or g_media.wasm_video_embed()"
+                                           data-type="video"
+                                           t-att-data-lb-key="g_media.id"
+                                           t-att-data-video-src="g_media.wasm_video_src() or None"
+                                           t-att-data-embed="g_media.wasm_video_embed() or None"
+                                           t-att-data-poster="g_media.wasm_image_url() or None"
+                                           t-att-data-caption="g_media.name"
+                                           t-att-aria-label="site_config.tx('projects.video.play') + ': ' + (g_media.name or '')">
+                                            <t t-call="wasm_website.wasm_media_thumb">
+                                                <t t-set="thumb_poster" t-value="g_media.wasm_image_url()"/>
+                                                <t t-set="thumb_src" t-value="g_media.wasm_video_src()"/>
+                                                <t t-set="thumb_embed" t-value="g_media.wasm_video_embed()"/>
+                                                <t t-set="thumb_alt" t-value="g_media.name"/>
+                                                <t t-set="thumb_class" t-value="'w-100 h-100'"/>
+                                            </t>
+                                        </a>
+                                    </t>
+                                    <div t-elif="g_media.wasm_image_url()" class="wasm-gallery-card flex-shrink-0 rounded-4 overflow-hidden shadow-sm bg-white border" style="width: 320px; height: 220px; transition: transform 0.3s ease, box-shadow 0.3s ease;">
+                                        <img t-att-src="g_media.wasm_image_url()" t-att-alt="site_config.tx('projects.gallery.img_alt')" loading="lazy" decoding="async" width="320" height="220" class="w-100 h-100" style="object-fit: cover; transition: transform 0.5s ease;"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </section>
+                </t>
+
+                <div class="oe_structure" id="oe_structure_projects_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ============================================================
+         9. SINGLE PROJECT DETAILED SHOWCASE PAGE
+         ============================================================ -->
+    <template id="project_detail_page_template" name="Project Details - ARFA SPECIALIZED SYSTEMS">
+        <t t-call="website.layout" pageName.f="project_detail">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="is_en" t-value="site_config.is_en()"/>
+            <t t-set="title" t-value="project.name + ' | ' + site_config.tx('project_detail.title_suffix')"/>
+            <t t-set="meta_description_page" t-value="(project.description or ((project.name or '') + ' — ' + (project.location or '') + '. ' + (project.scope_of_work or project.wasm_type_label(is_en))))[:300]"/>
+            <t t-set="gallery_items" t-value="gallery_items if gallery_items is not None else project.wasm_gallery_items()"/>
+            <t t-set="gallery_categories" t-value="gallery_categories if gallery_categories is not None else project.wasm_gallery_categories()"/>
+            <t t-set="floor_rows" t-value="floor_rows if floor_rows is not None else project.wasm_floor_rows()"/>
+            <t t-set="extra_gallery" t-value="extra_gallery or []"/>
+            <t t-set="area_unit" t-value="site_config.tx('project_detail.area_unit')"/>
+            <t t-set="play_label" t-value="site_config.tx('projects.video.play')"/>
+            <div id="wrap" class="arfa-pd">
+
+                <!-- 1. Title band -->
+                <section class="arfa-pd-hero">
+                    <div class="container">
+                        <div class="arfa-pd-crumbs" role="navigation" t-att-aria-label="site_config.tx('project_detail.crumb.aria')">
+                            <a href="/" t-out="site_config.tx('project_detail.crumb.home')"/>
+                            <span aria-hidden="true">/</span>
+                            <a href="/projects" t-out="site_config.tx('project_detail.crumb.projects')"/>
+                            <span aria-hidden="true">/</span>
+                            <span class="arfa-pd-crumb-current" t-out="project.name"/>
+                        </div>
+                        <div class="arfa-pd-hero-meta">
+                            <span class="arfa-pd-pill" t-out="project.wasm_state_label(is_en)"/>
+                            <span class="arfa-pd-pill arfa-pd-pill-ghost" t-out="project.wasm_type_label(is_en)"/>
+                        </div>
+                        <h1 class="arfa-pd-title" t-out="project.name"/>
+                        <p class="arfa-pd-location" t-if="project.location">
+                            <i class="fa fa-map-marker" role="img" t-att-aria-label="site_config.tx('project_detail.location_aria')" t-att-title="site_config.tx('project_detail.location_aria')"/> <span t-out="project.location"/>
+                        </p>
+                    </div>
+                    <t t-call="wasm_website.wasm_wave_divider"/>
+                </section>
+
+                <!-- 2. Main image + facts card -->
+                <section class="arfa-pd-overview">
+                    <div class="container">
+                        <div class="arfa-pd-overview-grid">
+                            <figure class="arfa-pd-cover">
+                                <img t-att-src="project.wasm_main_image_url()" t-att-alt="project.name" loading="eager" fetchpriority="high" decoding="async" width="1200" height="750"/>
+                            </figure>
+                            <aside class="arfa-pd-facts" t-att-aria-label="site_config.tx('project_detail.facts.aria')">
+                                <h2 class="arfa-pd-facts-title" t-out="site_config.tx('project_detail.facts.title')"/>
+                                <dl class="arfa-pd-facts-list">
+                                    <t t-if="project.scope_of_work"><dt t-out="site_config.tx('project_detail.facts.role')"/><dd t-out="project.scope_of_work"/></t>
+                                    <t t-if="project.client_name"><dt t-out="site_config.tx('project_detail.facts.client')"/><dd t-out="project.client_name"/></t>
+                                    <t t-if="project.brand_operator"><dt t-out="site_config.tx('project_detail.facts.brand')"/><dd t-out="project.brand_operator"/></t>
+                                    <t t-if="project.location"><dt t-out="site_config.tx('project_detail.facts.location')"/><dd t-out="project.location"/></t>
+                                    <t t-if="project.building_config"><dt t-out="site_config.tx('project_detail.facts.build')"/><dd class="arfa-ltr" t-out="project.building_config"/></t>
+                                    <t t-if="project.units_count"><dt t-out="site_config.tx('project_detail.facts.units')"/><dd t-out="project.units_count"/></t>
+                                    <t t-if="project.area"><dt t-out="site_config.tx('project_detail.facts.area')"/><dd><t t-out="'{:,.0f}'.format(project.area)"/> <t t-out="area_unit"/></dd></t>
+                                    <t t-if="project.facilities"><dt t-out="site_config.tx('project_detail.facts.facilities')"/><dd t-out="project.facilities"/></t>
+                                    <t t-if="project.completion_date"><dt t-out="site_config.tx('project_detail.facts.completion')"/><dd t-out="project.completion_date.strftime('%Y')"/></t>
+                                </dl>
+                                <a href="/quote" class="arfa-pd-facts-cta" t-out="site_config.tx('project_detail.facts.cta')"/>
+                            </aside>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Collapsible sections -->
+                <section class="arfa-pd-sections">
+                    <div class="container arfa-pd-narrow">
+                        <details class="arfa-pd-acc">
+                            <summary><span t-out="site_config.tx('project_detail.acc.general')"/><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
+                            <div class="arfa-pd-acc-body">
+                                <dl class="arfa-pd-rows">
+                                    <t t-if="project.address"><dt t-out="site_config.tx('project_detail.row.address')"/><dd t-out="project.address"/></t>
+                                    <t t-if="project.building_type"><dt t-out="site_config.tx('project_detail.row.building_type')"/><dd t-out="project.building_type"/></t>
+                                    <t t-if="project.client_name"><dt t-out="site_config.tx('project_detail.facts.client')"/><dd t-out="project.client_name"/></t>
+                                    <dt t-out="site_config.tx('project_detail.row.category')"/><dd t-out="project.wasm_type_label(is_en)"/>
+                                </dl>
+                            </div>
+                        </details>
+
+                        <details class="arfa-pd-acc">
+                            <summary><span t-out="site_config.tx('project_detail.acc.description')"/><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
+                            <div class="arfa-pd-acc-body">
+                                <p class="arfa-pd-lead" t-if="project.description" t-out="project.description"/>
+                                <div class="arfa-pd-richtext" t-if="project.detailed_description" t-out="project.detailed_description"/>
+                                <p t-if="not project.description and not project.detailed_description">
+                                    <t t-out="project.name"/><t t-if="project.location"> — <t t-out="project.location"/></t>.
+                                    <t t-out="site_config.tx('project_detail.description.fallback')"/>
+                                </p>
+                            </div>
+                        </details>
+
+                        <details class="arfa-pd-acc">
+                            <summary><span t-out="site_config.tx('project_detail.acc.scope')"/><i class="arfa-pd-acc-icon" aria-hidden="true"/></summary>
+                            <div class="arfa-pd-acc-body">
+                                <dl class="arfa-pd-rows" t-if="floor_rows">
+                                    <t t-foreach="floor_rows" t-as="row">
+                                        <t t-if="row[1]"><dt t-out="row[0]"/><dd t-out="row[1]"/></t>
+                                        <t t-else=""><dt class="arfa-pd-rows-heading" t-out="row[0]"/><dd class="arfa-pd-rows-heading-gap"/></t>
+                                    </t>
+                                </dl>
+                                <div class="arfa-pd-richtext" t-if="project.deliverables" t-out="project.deliverables"/>
+                                <dl class="arfa-pd-rows" t-if="not floor_rows and not project.deliverables">
+                                    <dt t-out="site_config.tx('project_detail.facts.role')"/>
+                                    <dd t-out="project.scope_of_work or project.wasm_type_label(is_en)"/>
+                                    <t t-if="project.area"><dt t-out="site_config.tx('project_detail.facts.area')"/><dd><t t-out="'{:,.0f}'.format(project.area)"/> <t t-out="area_unit"/></dd></t>
+                                    <dt t-out="site_config.tx('project_detail.row.status')"/>
+                                    <dd t-out="project.wasm_state_label(is_en)"/>
+                                </dl>
+                            </div>
+                        </details>
+                    </div>
+                </section>
+
+                <!-- 4. Gallery with filters (photos + videos) -->
+                <section class="arfa-pd-gallery" t-if="gallery_items or project.video_url"
+                         t-att-data-lb-close="site_config.tx('projects.lightbox.close')"
+                         t-att-data-lb-prev="site_config.tx('projects.lightbox.prev')"
+                         t-att-data-lb-next="site_config.tx('projects.lightbox.next')">
+                    <div class="container">
+                        <div class="arfa-pd-gallery-head">
+                            <h2 class="wasm-section-title text-start" t-out="site_config.tx('project_detail.gallery.title')"/>
+                            <div class="arfa-pd-filters" role="tablist" t-if="gallery_categories">
+                                <button type="button" class="arfa-pd-filter is-active" data-filter="*" t-out="site_config.tx('project_detail.gallery.all')"/>
+                                <t t-foreach="gallery_categories" t-as="cat">
+                                    <button type="button" class="arfa-pd-filter" t-att-data-filter="cat['key']" t-out="cat['label']"/>
+                                </t>
+                            </div>
+                        </div>
+                        <div class="arfa-pd-video" t-if="project.video_url">
+                            <div class="ratio ratio-16x9"><iframe t-att-src="project.video_url" t-att-title="project.name" allowfullscreen="allowfullscreen" loading="lazy"/></div>
+                        </div>
+                        <div class="arfa-pd-grid" t-if="gallery_items">
+                            <t t-foreach="gallery_items" t-as="g">
+                                <t t-set="g_caption" t-value="(g['cat_label'] and (g['cat_label'] + ' — ') or '') + g['caption']"/>
+                                <a t-if="g.get('type') == 'video'" class="arfa-pd-tile arfa-pd-tile-video"
+                                   t-att-href="g['video_src'] or g['embed']" t-att-data-cat="g['cat']" data-type="video"
+                                   t-att-data-video-src="g['video_src'] or None" t-att-data-embed="g['embed'] or None"
+                                   t-att-data-poster="g['poster'] or None" t-att-data-caption="g_caption"
+                                   t-att-aria-label="play_label + ': ' + g['caption']">
+                                    <t t-call="wasm_website.wasm_media_thumb">
+                                        <t t-set="thumb_poster" t-value="g['poster']"/>
+                                        <t t-set="thumb_src" t-value="g['video_src']"/>
+                                        <t t-set="thumb_embed" t-value="g['embed']"/>
+                                        <t t-set="thumb_alt" t-value="g['caption']"/>
+                                        <t t-set="thumb_class" t-value="None"/>
+                                    </t>
+                                    <span class="arfa-pd-tile-caption">
+                                        <small t-if="g['cat_label']" t-out="g['cat_label']"/>
+                                        <span t-out="g['caption']"/>
+                                    </span>
+                                </a>
+                                <a t-else="" class="arfa-pd-tile" t-att-href="g['url']" t-att-data-cat="g['cat']" t-att-data-caption="g_caption">
+                                    <img t-att-src="g['url']" t-att-alt="g['caption']" loading="lazy" decoding="async"/>
+                                    <span class="arfa-pd-tile-caption">
+                                        <small t-if="g['cat_label']" t-out="g['cat_label']"/>
+                                        <span t-out="g['caption']"/>
+                                    </span>
+                                </a>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4b. Additional project photos / videos -->
+                <section class="arfa-pd-gallery arfa-pd-more" t-if="extra_gallery"
+                         t-att-data-lb-close="site_config.tx('projects.lightbox.close')"
+                         t-att-data-lb-prev="site_config.tx('projects.lightbox.prev')"
+                         t-att-data-lb-next="site_config.tx('projects.lightbox.next')">
+                    <div class="container">
+                        <div class="arfa-pd-gallery-head">
+                            <div>
+                                <h2 class="wasm-section-title text-start" t-out="site_config.tx('project_detail.more.title')"/>
+                                <p class="arfa-pd-more-sub" t-out="site_config.txb('project_detail.more.subtitle')"/>
+                            </div>
+                            <a href="/projects" class="arfa-pd-more-all" t-out="site_config.tx('project_detail.more.all')"/>
+                        </div>
+                        <div class="arfa-pd-grid arfa-pd-grid-more">
+                            <t t-foreach="extra_gallery" t-as="g">
+                                <t t-set="g_media" t-value="g.get('media')"/>
+                                <t t-set="g_video" t-value="g_media and g_media.wasm_is_video() and (g_media.wasm_video_src() or g_media.wasm_video_embed())"/>
+                                <a t-if="g_video" class="arfa-pd-tile arfa-pd-tile-video" data-cat="all" data-type="video"
+                                   t-att-href="g_media.wasm_video_src() or g_media.wasm_video_embed()"
+                                   t-att-data-video-src="g_media.wasm_video_src() or None" t-att-data-embed="g_media.wasm_video_embed() or None"
+                                   t-att-data-poster="g['url'] or None" t-att-data-caption="g['project'] or g['caption']"
+                                   t-att-aria-label="play_label + ': ' + (g['caption'] or g['project'] or '')">
+                                    <t t-call="wasm_website.wasm_media_thumb">
+                                        <t t-set="thumb_poster" t-value="g['url']"/>
+                                        <t t-set="thumb_src" t-value="g_media.wasm_video_src()"/>
+                                        <t t-set="thumb_embed" t-value="g_media.wasm_video_embed()"/>
+                                        <t t-set="thumb_alt" t-value="g['caption'] or g['project'] or site_config.tx('project_detail.more.img_alt')"/>
+                                        <t t-set="thumb_class" t-value="None"/>
+                                    </t>
+                                    <span class="arfa-pd-tile-caption" t-if="g['project'] or g['caption']">
+                                        <small t-if="g['project']" t-out="g['project']"/>
+                                        <span t-if="g['caption']" t-out="g['caption']"/>
+                                    </span>
+                                </a>
+                                <a t-elif="g['url']" class="arfa-pd-tile" t-att-href="g['url']" data-cat="all" t-att-data-caption="g['project'] or g['caption']">
+                                    <img t-att-src="g['url']" t-att-alt="g['caption'] or g['project'] or site_config.tx('project_detail.more.img_alt')" loading="lazy" decoding="async"/>
+                                    <span class="arfa-pd-tile-caption" t-if="g['project'] or g['caption']">
+                                        <small t-if="g['project']" t-out="g['project']"/>
+                                        <span t-if="g['caption']" t-out="g['caption']"/>
+                                    </span>
+                                </a>
+                            </t>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Previous / next -->
+                <div class="arfa-pd-pager" role="navigation" t-if="prev_project or next_project" t-att-aria-label="site_config.tx('project_detail.pager.aria')">
+                    <div class="container arfa-pd-pager-inner">
+                        <a t-if="prev_project" class="arfa-pd-pager-link arfa-pd-prev" t-attf-href="/projects/#{prev_project.id}">
+                            <small t-out="site_config.tx('project_detail.pager.prev')"/>
+                            <span t-out="prev_project.name"/>
+                        </a>
+                        <a href="/projects" class="arfa-pd-pager-all" t-att-aria-label="site_config.tx('project_detail.more.all')">
+                            <i class="fa fa-th-large" aria-hidden="true"/>
+                        </a>
+                        <a t-if="next_project" class="arfa-pd-pager-link arfa-pd-next" t-attf-href="/projects/#{next_project.id}">
+                            <small t-out="site_config.tx('project_detail.pager.next')"/>
+                            <span t-out="next_project.name"/>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="oe_structure" id="oe_structure_project_detail_bottom"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- Dedicated Service Tab Detail Template (one wasm.service record per page) -->
+    <template id="service_tab_detail_template" name="Wasm Service Tab Detail Page">
+        <t t-call="website.layout">
+            <t t-set="site_config" t-value="site_config or request.env['wasm.site.config'].sudo().get_config()"/>
+            <t t-set="title" t-value="service.wasm_title() + ' | ' + site_config.tx('service_detail.title_suffix')"/>
+            <t t-set="meta_description_page" t-value="(service.intro or service.short_description or '')[:300]"/>
+            <t t-set="srv_media" t-value="service.wasm_media()"/>
+            <t t-set="srv_features" t-value="service.wasm_features()"/>
+            <t t-set="srv_details" t-value="service.detailed_description and (service.detailed_description.striptags().strip() or '&lt;img' in service.detailed_description or '&lt;iframe' in service.detailed_description or '&lt;video' in service.detailed_description)"/>
+            <div id="wrap" class="wasm-site-wrapper bg-light">
+                <!-- Hero Banner Section -->
+                <t t-call="wasm_website.wasm_fluid_hero_header">
+                    <t t-set="badge_text" t-value="service.badge"/>
+                    <t t-set="title_text" t-value="service.wasm_title()"/>
+                    <t t-set="subtitle_text" t-value="service.intro"/>
+                </t>
+
+                <!-- Service Overview &amp; Features Section -->
+                <section class="py-5">
+                    <div class="container">
+                        <div class="row g-5 align-items-center mb-5">
+                            <div class="col-lg-6">
+                                <div class="card border-0 rounded-4 overflow-hidden shadow-lg" style="height: 380px;">
+                                    <img t-att-src="service.wasm_banner_url()" t-att-alt="site_config.tx('service_detail.banner_alt')" loading="eager" fetchpriority="high" decoding="async" width="1200" height="760" class="w-100 h-100" style="object-fit: cover;"/>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <h2 class="fw-bold mb-4 text-dark display-6">
+                                    <span t-out="site_config.tx('service_detail.overview.title')"/>
+                                </h2>
+                                <p class="text-muted fs-5 mb-4 leading-relaxed" t-if="service.intro">
+                                    <t t-out="service.intro"/>
+                                </p>
+                                <ul class="list-unstyled mb-4" t-if="srv_features">
+                                    <t t-foreach="srv_features" t-as="feature">
+                                        <li class="d-flex align-items-start mb-3">
+                                            <span class="bg-warning text-dark rounded-circle p-1 me-3 d-inline-flex align-items-center justify-content-center" style="width:28px; height:28px;">
+                                                <i class="fa fa-check"/>
+                                            </span>
+                                            <span class="fs-5 text-dark fw-medium"><t t-out="feature"/></span>
+                                        </li>
+                                    </t>
+                                </ul>
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <a t-attf-href="/quote?service_id=#{service.id}" class="btn btn-warning rounded-pill px-4 py-3 fw-bold fs-5 shadow-sm">
+                                        <span t-out="site_config.tx('service_detail.btn.start')"/>
+                                    </a>
+                                    <a href="/contactus" class="btn btn-outline-dark rounded-pill px-4 py-3 fw-bold fs-5">
+                                        <span t-out="site_config.tx('service_detail.btn.contact')"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional detailed description (rich text from the backend) -->
+                        <div t-if="srv_details" class="card border-0 rounded-4 shadow-sm bg-white p-4 p-lg-5 mb-5 wasm-service-details">
+                            <div class="fs-5 text-dark" t-out="service.detailed_description"/>
+                        </div>
+
+                        <!-- Service Media & Photo Gallery Section (photos + videos) -->
+                        <t t-if="srv_media">
+                            <div class="mt-5 pt-4 border-top">
+                                <div class="text-center mb-4">
+                                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-2 shadow-sm" style="font-size: 0.85rem;">
+                                        <span t-out="site_config.tx('service_detail.gallery.badge')"/>
+                                    </span>
+                                    <h3 class="fw-bold text-dark mb-2">
+                                        <span t-out="site_config.tx('service_detail.gallery.title')"/>
+                                    </h3>
+                                    <p class="text-muted fs-5 mx-auto" style="max-width: 650px;">
+                                        <span t-out="site_config.txb('service_detail.gallery.text')"/>
+                                    </p>
+                                </div>
+                                <div class="row g-4 mb-5">
+                                    <t t-foreach="srv_media" t-as="g_media">
+                                        <t t-if="g_media.wasm_is_video()">
+                                            <div class="col-md-4 col-sm-6" t-if="g_media.wasm_video_embed() or g_media.wasm_video_src()">
+                                                <div class="card border-0 rounded-4 overflow-hidden shadow-sm wasm-hover-card bg-white wasm-service-video" style="height: 240px;">
+                                                    <iframe t-if="g_media.wasm_video_embed()" t-att-src="g_media.wasm_video_embed()" t-att-title="g_media.name" class="w-100 h-100 border-0" allowfullscreen="allowfullscreen" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"/>
+                                                    <video t-else="" class="w-100 h-100" style="object-fit: cover;" controls="controls" preload="metadata" playsinline="playsinline" t-att-poster="g_media.wasm_image_url() or None" t-att-title="g_media.name">
+                                                        <source t-att-src="g_media.wasm_video_src()" type="video/mp4"/>
+                                                    </video>
+                                                </div>
+                                            </div>
+                                        </t>
+                                        <div t-elif="g_media.wasm_image_url()" class="col-md-4 col-sm-6">
+                                            <div class="card border-0 rounded-4 overflow-hidden shadow-sm wasm-hover-card bg-white" style="height: 240px;">
+                                                <img t-att-src="g_media.wasm_image_url()" t-att-alt="site_config.tx('service_detail.gallery.img_alt')" loading="lazy" decoding="async" width="600" height="400" class="w-100 h-100" style="object-fit: cover; transition: transform 0.4s ease;"/>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- All Services Quick Tabs Bar (current service highlighted, website order) -->
+                        <t t-set="srv_all" t-value="(service | other_services).sorted()"/>
+                        <div class="card border-0 rounded-4 shadow-sm bg-white p-4 mt-5" t-if="other_services">
+                            <h4 class="fw-bold mb-4 text-dark text-center">
+                                <span t-out="site_config.tx('service_detail.other.title')"/>
+                            </h4>
+                            <div class="row g-3">
+                                <t t-foreach="srv_all" t-as="srv_item">
+                                    <div class="col-md-3 col-6">
+                                        <a t-att-href="srv_item.website_url" t-attf-class="btn w-100 rounded-3 py-3 fw-bold border text-start d-flex align-items-center gap-2 #{srv_item == service and 'btn-warning text-dark shadow-sm' or 'btn-light text-dark'}">
+                                            <i t-attf-class="fa #{srv_item.icon} text-warning fs-5"/>
+                                            <span class="small lh-sm arfa-chip-label"><t t-out="srv_item.wasm_title()"/></span>
+                                        </a>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </t>
+    </template>
+</odoo>

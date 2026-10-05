@@ -8,3 +8,12 @@ __pycache__/
 *.swp
 *.tmp
 EOF
+
+# local secrets / runtime files (never commit)
+docker/odoo.conf
+docker/db_password.txt
+prodkit/.env
+backups/
+release/
+*_log.txt
+setup_started.txt

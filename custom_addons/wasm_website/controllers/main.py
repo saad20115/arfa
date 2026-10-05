@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 import base64
 import logging
+import math
 import os
-from odoo import http, _
-from odoo.http import request
+import re
 
+from werkzeug.exceptions import NotFound
+
+from odoo import http
+from odoo.http import request
+from odoo.tools.mimetypes import guess_mimetype
+
+from odoo.addons.website.controllers.main import Website
 from odoo.addons.wasm_website.models.wasm_site_config import DEFAULT_IMAGES
+from odoo.addons.wasm_website.models.wasm_service import LEGACY_SLUGS
 
 _logger = logging.getLogger(__name__)
 
@@ -23,23 +31,22 @@ MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB per file
 MAX_FILES_COUNT = 5  # Maximum number of files per submission
 
 # --- Anti-spam / validation ---------------------------------------------------
-import re as _re
-import time as _time
-from collections import defaultdict as _defaultdict, deque as _deque
-
-EMAIL_RE = _re.compile(r'^[^@\s<>"\']{1,64}@[^@\s<>"\']{1,190}\.[A-Za-z]{2,24}$')
-PHONE_RE = _re.compile(r'^[0-9+()\-\s]{7,20}$')
+EMAIL_RE = re.compile(r'^[^@\s<>"\']{1,64}@[^@\s<>"\']{1,190}\.[A-Za-z]{2,24}$')
+PHONE_RE = re.compile(r'^[0-9+()\-\s]{7,20}$')
 FIELD_LIMITS = {'customer_name': 120, 'phone': 20, 'email': 254, 'project_location': 150, 'details': 5000}
-RATE_LIMIT_WINDOW = 600      # seconds
+SINGLE_LINE_FIELDS = ('customer_name', 'phone', 'email', 'project_location')
+RATE_LIMIT_MINUTES = 10      # window of the per-IP limit (stored in wasm.quote.request.client_ip)
 RATE_LIMIT_MAX = 5           # submissions per IP per window
-MIN_FILL_SECONDS = 3         # faster than this = bot
-_SUBMISSIONS = _defaultdict(_deque)
 BLOCKED_MIMETYPES = ('text/html', 'application/x-msdownload', 'application/x-sh', 'application/javascript',
                      'image/svg+xml', 'application/x-dosexec', 'application/x-executable')
+# C0/C1 control characters except TAB / LF (CR is normalised first), plus bidi overrides
+_CONTROL_RE = re.compile('[\x00-\x08\x0b-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]')
+_SERVICE_ID_RE = re.compile(r'^[0-9]{1,9}$')
 
 
 def _client_ip():
-    return request.httprequest.remote_addr or 'unknown'
+    """Visitor IP. Behind nginx Odoo rewrites remote_addr from X-Forwarded-For (proxy_mode)."""
+    return (request.httprequest.remote_addr or '')[:64]
 
 
 def _wasm_spam_reason(post):
@@ -47,34 +54,56 @@ def _wasm_spam_reason(post):
     # honeypot: hidden field real visitors never fill
     if (post.get('website_url') or '').strip():
         return 'honeypot'
-    # time-to-fill check (only when the form provides the timestamp)
-    ts = post.get('form_ts')
-    if ts and str(ts).isdigit():
-        elapsed = _time.time() - int(ts) / 1000.0
-        if 0 <= elapsed < MIN_FILL_SECONDS:
-            return 'too_fast'
-    # per-IP rate limit (per worker process)
-    now = _time.time()
-    q = _SUBMISSIONS[_client_ip()]
-    while q and now - q[0] > RATE_LIMIT_WINDOW:
-        q.popleft()
-    if len(q) >= RATE_LIMIT_MAX:
+    # signed timestamp rendered in the form: missing / forged / too fast / too old
+    config = request.env['wasm.site.config'].sudo()
+    if not config.wasm_check_form_token(post.get('form_ts')):
+        return 'token'
+    # per-IP rate limit, counted in the database (shared by all workers and servers)
+    if request.env['wasm.quote.request'].sudo().wasm_recent_count_from_ip(
+            _client_ip(), RATE_LIMIT_MINUTES) >= RATE_LIMIT_MAX:
         return 'rate_limit'
-    q.append(now)
-    if len(_SUBMISSIONS) > 5000:          # keep memory bounded
-        _SUBMISSIONS.clear()
     return None
 
 
 _DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789')
 
 
+def _clean_text(value, single_line=False):
+    """Visitor text without control characters; single-line values get collapsed whitespace."""
+    value = value if isinstance(value, str) else ''
+    value = value.replace('\r\n', '\n').replace('\r', '\n')
+    if single_line:
+        value = ' '.join(_CONTROL_RE.sub(' ', value).split())
+    else:
+        value = _CONTROL_RE.sub('', value).strip()
+    return value
+
+
 def _clean(post, key):
-    value = (post.get(key) or '').strip()
+    value = _clean_text(post.get(key), single_line=key in SINGLE_LINE_FIELDS)
     if key == 'phone':
         value = value.translate(_DIGITS)       # accept Arabic-Indic digits
     limit = FIELD_LIMITS.get(key)
     return value[:limit] if limit else value
+
+
+def _parse_service_id(value):
+    """Id of an active wasm.service, or False (rejects huge / unknown / archived ids)."""
+    value = value.strip() if isinstance(value, str) else ''
+    if not _SERVICE_ID_RE.match(value):
+        return False
+    service = request.env['wasm.service'].sudo().browse(int(value)).exists()
+    return service.id if service and service.active else False
+
+
+def _parse_amount(value, upper):
+    try:
+        number = float(value or 0.0)
+    except (ValueError, TypeError):
+        return 0.0
+    if not math.isfinite(number):
+        return 0.0
+    return max(0.0, min(number, upper))
 
 
 def _valid_contact(email, phone):
@@ -110,6 +139,17 @@ def _sitemap_news(env, rule, qs):
             yield entry
 
 
+def _sitemap_services(env, rule, qs):
+    for service in env['wasm.service'].sudo().search([('active', '=', True), ('slug', '!=', False)],
+                                                     order='sequence, id'):
+        loc = service.website_url
+        if not qs or qs.lower() in loc:
+            entry = {'loc': loc}
+            if service.write_date:
+                entry['lastmod'] = service.write_date.date()
+            yield entry
+
+
 SEO_REDIRECTS = {
     '/about-us': '/about',
     '/our-group': '/our-company',
@@ -129,42 +169,13 @@ class WasmWebsiteController(http.Controller):
     @http.route('/', type='http', auth='public', website=True)
     def wasm_home(self, **kw):
         site_config = request.env['wasm.site.config'].sudo().get_config()
-        home_limit = site_config.home_projects_limit if site_config and site_config.home_projects_limit > 0 else 6
-        services = request.env['wasm.service'].sudo().search(
-            [('active', '=', True)], limit=6, order='sequence, id'
-        )
-        projects = request.env['wasm.project'].sudo().search(
-            [('active', '=', True)], limit=home_limit, order='sequence, id desc'
-        )
-        partners = request.env['wasm.partner'].sudo().search(
-            [('active', '=', True)], order='sequence, id'
-        )
-        testimonials = request.env['wasm.testimonial'].sudo().search(
-            [('active', '=', True)], order='sequence, id'
-        )
+        home_limit = site_config.home_projects_limit if site_config.home_projects_limit > 0 else 6
         values = {
-            'services': services,
-            'projects': projects,
-            'partners': partners,
-            'testimonials': testimonials,
             'site_config': site_config,
-            'stats': {
-                'stat1_val': site_config.stat1_val if site_config and site_config.stat1_val else '150+',
-                'stat1_label_ar': site_config.stat1_label_ar if site_config and site_config.stat1_label_ar else 'مشروع مكتمل',
-                'stat1_label_en': site_config.stat1_label_en if site_config and site_config.stat1_label_en else 'Completed Projects',
-
-                'stat2_val': site_config.stat2_val if site_config and site_config.stat2_val else '18+',
-                'stat2_label_ar': site_config.stat2_label_ar if site_config and site_config.stat2_label_ar else 'عاماً خبرة',
-                'stat2_label_en': site_config.stat2_label_en if site_config and site_config.stat2_label_en else 'Years Experience',
-
-                'stat3_val': site_config.stat3_val if site_config and site_config.stat3_val else '1,200,000+',
-                'stat3_label_ar': site_config.stat3_label_ar if site_config and site_config.stat3_label_ar else 'م² مساحة منفذة',
-                'stat3_label_en': site_config.stat3_label_en if site_config and site_config.stat3_label_en else 'm² Executed Area',
-
-                'stat4_val': site_config.stat4_val if site_config and site_config.stat4_val else '85+',
-                'stat4_label_ar': site_config.stat4_label_ar if site_config and site_config.stat4_label_ar else 'مهندس ومتخصص',
-                'stat4_label_en': site_config.stat4_label_en if site_config and site_config.stat4_label_en else 'Engineers & Specialists',
-            }
+            'projects': request.env['wasm.project'].sudo().search(
+                [('active', '=', True)], limit=home_limit, order='sequence, id desc'),
+            'partners': request.env['wasm.partner'].sudo().search([('active', '=', True)], order='sequence, id'),
+            'testimonials': request.env['wasm.testimonial'].sudo().search([('active', '=', True)], order='sequence, id'),
         }
         return request.render('wasm_website.home_page_template', values)
 
@@ -181,355 +192,92 @@ class WasmWebsiteController(http.Controller):
         When the request carries ?unique=..., the response is cached by the
         browser for a year (the templates change the token on every save).
         """
-        if record and record.exists() and record[field_name]:
+        record = record.exists() if record else record
+        if record and 'active' in record._fields and not record.active:
+            raise request.not_found()          # archived content is not public any more
+        if record and record[field_name]:
             unique = bool(request.params.get('unique'))
-            try:
-                binary = request.env['ir.binary']
-                if default_mimetype.startswith('image/') and not mimetype:
-                    stream = binary._get_image_stream_from(record, field_name, filename=filename)
-                else:
-                    stream = binary._get_stream_from(record, field_name, filename=filename,
-                                                     mimetype=mimetype, default_mimetype=default_mimetype)
-                return stream.get_response(as_attachment=as_attachment, immutable=unique)
-            except Exception:  # safety net: keep the page working even if the API changes
-                _logger.exception('wasm_website: streaming %s.%s failed, using fallback', record._name, field_name)
-                data = base64.b64decode(record[field_name])
-                return request.make_response(data, headers=[
-                    ('Content-Type', mimetype or default_mimetype),
-                    ('Content-Length', str(len(data))),
-                    ('Cache-Control', 'public, max-age=31536000, immutable' if unique else 'no-cache'),
-                ])
+            binary = request.env['ir.binary']
+            if default_mimetype.startswith('image/') and not mimetype:
+                stream = binary._get_image_stream_from(record, field_name, filename=filename)
+            else:
+                stream = binary._get_stream_from(record, field_name, filename=filename,
+                                                 mimetype=mimetype, default_mimetype=default_mimetype)
+            return stream.get_response(as_attachment=as_attachment, immutable=unique)
         if fallback_url:
             return request.redirect(fallback_url, local=fallback_url.startswith('/'))
-        return request.not_found()
+        raise request.not_found()
 
     @http.route('/wasm/config/image/<string:field_name>', type='http', auth='public')
     def wasm_config_image(self, field_name, **kw):
         config = request.env['wasm.site.config'].sudo().get_config()
         field = config._fields.get(field_name)
         if not field or field.type != 'binary' or field_name not in DEFAULT_IMAGES:
-            return request.not_found()
+            raise request.not_found()
         return self._wasm_stream(config, field_name, fallback_url=DEFAULT_IMAGES.get(field_name) or None)
 
     @http.route('/wasm/partner/<int:partner_id>/logo', type='http', auth='public')
     def wasm_partner_logo_stream(self, partner_id, **kw):
-        partner = request.env['wasm.partner'].sudo().browse(partner_id)
-        if partner.exists() and not partner.logo and partner.logo_url:
+        partner = request.env['wasm.partner'].sudo().browse(partner_id).exists()
+        if partner and partner.active and not partner.logo and partner.logo_url:
             return request.redirect(partner.logo_url, local=False)
         return self._wasm_stream(partner, 'logo')
 
     @http.route('/wasm/project/<int:project_id>/image', type='http', auth='public')
     def wasm_project_image_stream(self, project_id, **kw):
         project = request.env['wasm.project'].sudo().browse(project_id)
-        defaults = {
-            47: '/wasm_website/static/src/img/project_conference_ritz.jpg',
-            48: '/wasm_website/static/src/img/project_qirwan_kitchen.jpg',
-            49: '/wasm_website/static/src/img/project_sudair_industrial.jpg',
-            50: '/wasm_website/static/src/img/project_intercontinental_taif.jpg',
-            51: '/wasm_website/static/src/img/project_mina_hospital.jpg',
-            52: '/wasm_website/static/src/img/project_janadriyah_towers.jpg',
-            53: '/wasm_website/static/src/img/project_sofitel_makkah.jpg',
-            54: '/wasm_website/static/src/img/project_ramada_meridien.jpg',
-        }
-        return self._wasm_stream(project, 'image',
-                                 fallback_url=defaults.get(project_id, '/wasm_website/static/src/img/project_conference_ritz.jpg'))
+        return self._wasm_stream(project, 'image', fallback_url='/wasm_website/static/src/img/project_conference_ritz.jpg')
 
-    @http.route('/wasm/pillar/<int:pillar_num>/image', type='http', auth='public')
-    def wasm_pillar_image_stream(self, pillar_num, **kw):
-        """Kept for old links; templates now use site_config.wasm_img_url()."""
-        return self.wasm_config_image('pillar%d_img' % pillar_num)
+    @http.route('/wasm/service/<int:service_id>/image', type='http', auth='public')
+    def wasm_service_card_image_stream(self, service_id, **kw):
+        service = request.env['wasm.service'].sudo().browse(service_id)
+        return self._wasm_stream(service, 'image',
+                                 fallback_url='/wasm_website/static/src/img/arfa_exhibition_building.webp')
 
-    @http.route('/wasm/why/<int:card_num>/image', type='http', auth='public')
-    def wasm_why_card_image_stream(self, card_num, **kw):
-        """Kept for old links; templates now use site_config.wasm_img_url()."""
-        return self.wasm_config_image('why%d_img' % card_num)
+    @http.route('/wasm/service/<int:service_id>/banner', type='http', auth='public')
+    def wasm_service_banner_stream(self, service_id, **kw):
+        service = request.env['wasm.service'].sudo().browse(service_id)
+        return self._wasm_stream(service, 'banner_image', fallback_url='/wasm/service/%s/image' % service_id)
 
-    @http.route(['/wasm/service_card/<int:card_num>/image', '/wasm/service/<int:service_id>/image'], type='http', auth='public')
-    def wasm_service_card_image_stream(self, card_num=None, service_id=None, **kw):
-        if service_id:
-            service = request.env['wasm.service'].sudo().browse(service_id)
-            return self._wasm_stream(service, 'image',
-                                     fallback_url='/wasm_website/static/src/img/arfa_exhibition_building.webp')
-        return self.wasm_config_image('srv%d_img' % (card_num or 1))
+    @http.route('/wasm/item/<int:item_id>/image', type='http', auth='public')
+    def wasm_content_item_image(self, item_id, **kw):
+        item = request.env['wasm.content.item'].sudo().browse(item_id).exists()
+        if item and item.active and not item.image and item.image_url:
+            return request.redirect(item.image_url, local=item.image_url.startswith('/'))
+        return self._wasm_stream(item, 'image')
 
-    # --- Service Subpage Routes matching website navigation tabs ---
-    @http.route([
-        '/planning-construction',
-        '/electromechanical-systems',
-        '/smart-building-systems',
-        '/modern-building-systems',
-        '/fire-protection-prevention-systems',
-        '/medical-gas-systems',
-        '/alternative-energy-solutions',
-        '/infrastructure-development'
-    ], type='http', auth='public', website=True)
-    def wasm_service_tab_page(self, **kw):
-        path = request.httprequest.path
-        services_data = {
-            '/planning-construction': {
-                'id': 1,
-                'card_num': 1,
-                'title_en': 'Planning & Structural Construction',
-                'title_ar': 'التخطيط والإنشاءات الخرسانية',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS offers full-scale engineering management, structural design, and general contracting services for complex residential, commercial, industrial, and healthcare developments.',
-                'subtitle_ar': 'تقدم شركة عرفة للأنظمة المتخصصة إدارة هندسية وتصميم إنشائي ومقاولات عامة للمشاريع السكنية والتجارية والصناعية والصحية.',
-                'icon': 'fa-building',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/planning-construction_img_1.webp',
-                'badge_en': 'Structural Design & General Contracting',
-                'badge_ar': 'التصميم الإنشائي والمقاولات العامة',
-                'features_en': [
-                    'Full-scale engineering management & structural design for complex developments.',
-                    'General contracting across residential, commercial, industrial, & healthcare sectors.',
-                    'Value engineering, strict quality control, and schedule management.',
-                    'Resilient, modern structures built to the highest Saudi Building Code (SBC) standards.'
-                ],
-                'features_ar': [
-                    'إدارة هندسية وتصميم إنشائي متكامل للمشاريع المعقدة.',
-                    'تنفيذ الأعمال الإنشائية والمقاولات العامة لكافة القطاعات.',
-                    'الهندسة القيمية والرقابة الصارمة على الجودة والجداول الزمنية.',
-                    'مبانٍ وبنى حديثة ومقاومة وفق أعلى معايير كود البناء السعودي SBC.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/planning-construction_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/planning-construction_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/planning-construction_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/planning-construction_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/planning-construction_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/planning-construction_img_6.webp'
-                ]
-            },
-            '/electromechanical-systems': {
-                'id': 2,
-                'card_num': 2,
-                'title_en': 'Electromechanical Systems (MEP)',
-                'title_ar': 'أنظمة الكهروميكانيك (MEP)',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS boasts a highly qualified engineering and technical team specializing in the design, execution, and maintenance of complete MEP infrastructure.',
-                'subtitle_ar': 'تتميز شركة عرفة للأنظمة المتخصصة بكادر هندسي وفني عالي التأهيل متخصص في تصميم وتنفيذ وصيانة شبكات الكهروميكانيك.',
-                'icon': 'fa-bolt',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_1.webp',
-                'badge_en': 'Complete MEP Engineering',
-                'badge_ar': 'حلول الكهروميكانيك المتقدمة',
-                'features_en': [
-                    'Central air conditioning, cooling plants, and precision ductwork systems.',
-                    'Plumbing infrastructure, drainage networks, and swimming pool construction.',
-                    'Firefighting, FM-200 / CO2 gas fire suppression, and alarm systems.',
-                    'BMS Systems, electrical distribution, power transformers, and low-voltage networks.'
-                ],
-                'features_ar': [
-                    'أنظمة التكييف المركزي ومحطات التبريد وإمدادات الدكت.',
-                    'شبكات السباكة وتصريف المياه وإنشاء حمامات السباحة.',
-                    'أنظمة إطفاء الحريق والإغمار بالغاز وشبكات الإنذار المبكر.',
-                    'أنظمة BMS والتحكم الكهربائي ومحطات الجهد المنخفض.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/electromechanical-systems_img_6.webp'
-                ]
-            },
-            '/smart-building-systems': {
-                'id': 3,
-                'card_num': 3,
-                'title_en': 'Smart Building Systems (BMS)',
-                'title_ar': 'أنظمة المباني الذكية (BMS)',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS implements smart building solutions across residential and commercial developments, enabling clients to effortlessly control and manage all integrated systems remotely.',
-                'subtitle_ar': 'تطبق شركة عرفة للأنظمة المتخصصة حلول المباني الذكية في المشاريع السكنية والتجارية لتمكين التحكم والتعديل عن بُعد.',
-                'icon': 'fa-microchip',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_1.webp',
-                'badge_en': 'Building Automation & Remote Control',
-                'badge_ar': 'أتمتة المباني والتحكم الرقمي',
-                'features_en': [
-                    'Integrated BMS for centralized energy, climate, and smart lighting control.',
-                    'Remote management of facility operations with minimal human intervention.',
-                    'IP CCTV surveillance integration and biometric access control systems.',
-                    'Real-time automated diagnostic monitoring and predictive maintenance sensors.'
-                ],
-                'features_ar': [
-                    'أنظمة BMS المركزية لإدارة الطاقة والإضاءة والتكييف الذكي.',
-                    'التحكم والتعديل عن بُعد بالمنشآت مع تقليل التدخل البشرى.',
-                    'ربط أنظمة المراقبة الرقمية CCTV وبوابات الدخول المغناطيسية.',
-                    'مراقبة تشخيصية فورية للتنبيه بالأعطال والصيانة التنبؤية.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/smart-building-systems_img_6.webp'
-                ]
-            },
-            '/modern-building-systems': {
-                'id': 4,
-                'card_num': 4,
-                'title_en': 'Modern Building Systems & Prefab',
-                'title_ar': 'الأنظمة الحديثة والمباني (Prefab)',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS is one of the leading companies to adopt modern building systems across all construction departments, reducing overall costs and maximizing resource efficiency.',
-                'subtitle_ar': 'تعتبر شركة عرفة للأنظمة المتخصصة من الشركات الرائدة في تبني أنظمة البناء الحديثة لتقليل التكاليف وزيادة الكفاءة.',
-                'icon': 'fa-cubes',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_1.webp',
-                'badge_en': 'Fast & Sustainable Construction Tech',
-                'badge_ar': 'تقنيات البناء الحديثة والمستدامة',
-                'features_en': [
-                    'Adoption of advanced modern building systems across all construction sectors.',
-                    'Maximized efficiency of modern building resources reducing total development costs.',
-                    'Structural glass facades, curtain walls, and premium aluminum cladding.',
-                    'Prefabricated modular building methods with superior thermal insulation.'
-                ],
-                'features_ar': [
-                    'تبني أحدث تقنيات وأنظمة البناء الحديثة بكافة قطاعات التشييد.',
-                    'تعظيم كفاءة الموارد الحديثة وتقليل التكلفة الإجمالية للمشاريع.',
-                    'تركيب الواجهات الزجاجية والهياكل المعدنية والألومنيوم الفاخر.',
-                    'أنظمة البناء مسبق الصنع المودولار بأعلى مستويات العزل الحراري.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/modern-building-systems_img_6.webp'
-                ]
-            },
-            '/fire-protection-prevention-systems': {
-                'id': 5,
-                'card_num': 5,
-                'title_en': 'Fire Protection & Prevention Systems',
-                'title_ar': 'أنظمة الوقاية والحماية من الحريق',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS designs, installs, and maintains high-performance fire protection and prevention systems adhering strictly to Civil Defense regulations and NFPA, UL, and FM standards.',
-                'subtitle_ar': 'تصمم وتنفذ وتصين شركة عرفة للأنظمة المتخصصة أنظمة السلامة والوقاية من الحريق المعتمدة من الدفاع المدني والمعايير الدولية (NFPA, UL, FM).',
-                'icon': 'fa-fire-extinguisher',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_1.webp',
-                'badge_en': 'Civil Defense & NFPA Certified Safety',
-                'badge_ar': 'معتمدة من الدفاع المدني وNFPA',
-                'features_en': [
-                    'Smart addressable fire alarm, smoke detection, and aspirating early-warning networks.',
-                    'Automatic sprinkler networks, deluge systems, and UL/FM fire pump stations.',
-                    'Clean agent gas suppression (FM-200, CO2, Novec 1230) for server rooms and data centers.',
-                    'Testing, commissioning, and official Saudi Civil Defense licensing certification.'
-                ],
-                'features_ar': [
-                    'شبكات إنذار كشف الدخان والتنبيه المبكر المعنونة.',
-                    'شبكات الرش الآلي ومحطات مضخات الحريق المعيارية UL/FM.',
-                    'أنظمة الإطفاء التلقائي بالغازات النظيفة لغرف البيانات والمعدات.',
-                    'اختبارات التشغيل واختبار الضغط وتراخيص الدفاع المدني المعتمدة.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/fire-protection-prevention-systems_img_6.webp'
-                ]
-            },
-            '/medical-gas-systems': {
-                'id': 6,
-                'card_num': 6,
-                'title_en': 'Medical Gas Systems (MGPS)',
-                'title_ar': 'أنظمة الغازات الطبية (MGPS)',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS provides end-to-end engineering solutions for Medical Gas Pipeline Systems (MGPS) in healthcare facilities according to strict HTM 02-01 / NFPA 99 standards.',
-                'subtitle_ar': 'تقدم شركة عرفة للأنظمة المتخصصة حلولاً هندسية متكاملة لشبكات الغازات الطبية بالمنشآت الصحية وفق معايير HTM 02-01 وNFPA 99.',
-                'icon': 'fa-medkit',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_1.webp',
-                'badge_en': 'HTM 02-01 / NFPA 99 Hospital Standards',
-                'badge_ar': 'معايير المستشفيات العالمية HTM/NFPA',
-                'features_en': [
-                    'Medical Gas Pipeline Systems (MGPS) for hospitals and specialized medical centers.',
-                    'Central oxygen supply stations, surgical air, and high-vacuum plant installations.',
-                    'Bedhead units (BHU), ICU monitoring panels, and digital gas pressure alarms.',
-                    'Full testing and clinical safety compliance to HTM 02-01 and NFPA 99 code.'
-                ],
-                'features_ar': [
-                    'شبكات تمديد الغازات الطبية المركزية للمستشفيات والجهات الصحية.',
-                    'محطات الأكسجين المركزية وضواغط الهواء والمطارد الجراحية.',
-                    'وحدات رؤوس الأسرة (BHU) ولوحات المراقبة الرقمية لغرف العناية.',
-                    'اختبارات النقاء والضغط والاعتماد الطبي وفق HTM 02-01 وNFPA 99.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/medical-gas-systems_img_6.webp'
-                ]
-            },
-            '/alternative-energy-solutions': {
-                'id': 7,
-                'card_num': 7,
-                'title_en': 'Alternative Energy Solutions',
-                'title_ar': 'حلول الطاقة البديلة والشمسية',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS implements sustainable renewable and alternative energy solutions designed to optimize power consumption, reduce carbon footprint, and protect the environment.',
-                'subtitle_ar': 'تطبق شركة عرفة للأنظمة المتخصصة حلول الطاقة التجددية والبديلة المستدامة لترشيد استهلاك الكهرباء وتقليل الأثر الكربونى.',
-                'icon': 'fa-sun-o',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_1.webp',
-                'badge_en': 'Solar PV & Sustainable Energy',
-                'badge_ar': 'الطاقة الشمسية والاستدامة البيئية',
-                'features_en': [
-                    'Rooftop and ground-mounted commercial solar PV system design and installation.',
-                    'Smart power consumption optimization reducing electrical utility expenditure.',
-                    'Carbon footprint reduction and environmentally friendly infrastructure.',
-                    'Grid-tied inverters and high-capacity battery energy storage setups (BESS).'
-                ],
-                'features_ar': [
-                    'تصميم وتثبيت أنظمة الألواح الشمسية الكهروضوئية للمشروعات والمباني.',
-                    'ترشيد استهلاك الكهرباء وخفض التكاليف التشغيلية للفواتير.',
-                    'تقليل الانبعاثات الكربونية وحماية البيئة وفق معايير الاستدامة.',
-                    'محولات الطاقة الهجينة وأنظمة بطاريات التخزين المستمرة.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/alternative-energy-solutions_img_6.webp'
-                ]
-            },
-            '/infrastructure-development': {
-                'id': 8,
-                'card_num': 8,
-                'title_en': 'Infrastructure Development & Networks',
-                'title_ar': 'البنية التحتية والشبكات',
-                'subtitle_en': 'ARFA SPECIALIZED SYSTEMS delivers comprehensive infrastructure engineering solutions for wet and dry utility networks, power distribution, district cooling, and stormwater management.',
-                'subtitle_ar': 'تقدم شركة عرفة للأنظمة المتخصصة حلول هندسية متكاملة لشبكات البنية التحتية الجافة والمائية وتوزيع الكهرباء وتصريف السيول.',
-                'icon': 'fa-road',
-                'bg_img': '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_1.webp',
-                'badge_en': 'Heavy Utilities & Infrastructure Networks',
-                'badge_ar': 'شبكات البنية التحتية الكبرى',
-                'features_en': [
-                    'Constructing robust wet and dry utility networks for residential & commercial plots.',
-                    'High-capacity electrical power distribution lines and district cooling pipelines.',
-                    'Stormwater management, drainage networks, and site excavation & grading.',
-                    'Advanced underground telecommunication pathways built for future expansion.'
-                ],
-                'features_ar': [
-                    'إنشاء شبكات المرافق الجافة والمائية للمخططات السكنية والتجارية.',
-                    'خطوط توزيع الكهرباء عالية السعة وأنابيب التبريد المركزي.',
-                    'تصريف السيول ومياه الأمطار وأعمال الحفر وتسوية المواقع.',
-                    'مسارات الاتصالات الأرضية وغرف التفتيش الجاهزة للتوسع المستقبلي.'
-                ],
-                'gallery_imgs': [
-                    '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_1.webp',
-                    '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_2.webp',
-                    '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_3.webp',
-                    '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_4.webp',
-                    '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_5.webp',
-                    '/wasm_website/static/src/img/official_live_services/infrastructure-development_img_6.webp'
-                ]
-            }
-        }
+    @http.route('/wasm/testimonial/<int:tid>/image', type='http', auth='public')
+    def wasm_testimonial_image(self, tid, **kw):
+        testimonial = request.env['wasm.testimonial'].sudo().browse(tid)
+        return self._wasm_stream(testimonial, 'image')
 
-        info = services_data.get(path, services_data['/planning-construction'])
-        site_config = request.env['wasm.site.config'].sudo().get_config()
+    @http.route('/wasm/gallery/<int:media_id>/video', type='http', auth='public')
+    def wasm_gallery_video_stream(self, media_id, **kw):
+        media = request.env['wasm.gallery.image'].sudo().browse(media_id)
+        return self._wasm_stream(media, 'video_file', mimetype='video/mp4', default_mimetype='video/mp4',
+                                 filename=media.video_filename or 'video.mp4')
+
+    @http.route('/wasm/video/hero', type='http', auth='public')
+    def wasm_hero_video_stream(self, **kw):
+        config = request.env['wasm.site.config'].sudo().get_config()
+        return self._wasm_stream(config, 'home_hero_video_file',
+                                 fallback_url=config.home_hero_video_url or '/wasm_website/static/src/video/hero_construction.mp4',
+                                 mimetype='video/mp4', default_mimetype='video/mp4',
+                                 filename=config.home_hero_video_filename or 'hero.mp4')
+
+    # --- Service pages: legacy root URLs + /services/<slug> for services added later ---
+    @http.route(['/%s' % slug for slug in LEGACY_SLUGS] + ['/services/<string:slug>'],
+                type='http', auth='public', website=True, sitemap=_sitemap_services)
+    def wasm_service_tab_page(self, slug=None, **kw):
+        slug = slug or request.httprequest.path.strip('/').split('/')[-1]
+        Service = request.env['wasm.service'].sudo()
+        service = Service.search([('slug', '=', slug), ('active', '=', True)], limit=1)
+        if not service:
+            return request.redirect('/services')
         values = {
-            'service_info': info,
-            'site_config': site_config,
-            'all_services_data': services_data,
+            'service': service,
+            'other_services': Service.search([('active', '=', True), ('id', '!=', service.id)], order='sequence, id'),
+            'site_config': request.env['wasm.site.config'].sudo().get_config(),
         }
         return request.render('wasm_website.service_tab_detail_template', values)
 
@@ -553,7 +301,8 @@ class WasmWebsiteController(http.Controller):
 
     @http.route('/about', type='http', auth='public', website=True)
     def wasm_about(self, **kw):
-        return request.render('wasm_website.about_page_template', {})
+        return request.render('wasm_website.about_page_template', {
+            'site_config': request.env['wasm.site.config'].sudo().get_config()})
 
     @http.route('/our-company', type='http', auth='public', website=True)
     def wasm_our_company(self, **kw):
@@ -589,35 +338,13 @@ class WasmWebsiteController(http.Controller):
         page_limit = site_config.projects_page_limit if site_config and site_config.projects_page_limit > 0 else False
         projects = request.env['wasm.project'].sudo().search(domain, limit=page_limit, order='sequence, id desc')
         
-        gallery_records = request.env['wasm.gallery.image'].sudo().search([('active', '=', True)], order='sequence, id')
-        gallery_imgs = []
-        if gallery_records:
-            for g in gallery_records:
-                if g.image:
-                    gallery_imgs.append(f'/wasm/gallery/{g.id}/image')
-                elif g.image_url:
-                    gallery_imgs.append(g.image_url)
-        if not gallery_imgs:
-            gallery_imgs = [
-                '/wasm_website/static/src/img/official_live_projects/industrial_park_sudair.webp',
-                '/wasm_website/static/src/img/official_live_projects/nora_univ_1.webp',
-                '/wasm_website/static/src/img/official_live_projects/nora_univ_2.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_1.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_2.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_5.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_6.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_8.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_9.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_10.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_11.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_14.webp',
-                '/wasm_website/static/src/img/official_live_projects/gallery_img_17.webp',
-            ]
+        gallery = request.env['wasm.gallery.image'].sudo().search(
+            [('active', '=', True), ('show_in_gallery', '=', True), ('service_id', '=', False)], order='sequence, id')
         values = {
             'projects': projects,
             'current_state': state or 'all',
             'site_config': site_config,
-            'gallery_imgs': gallery_imgs,
+            'gallery': gallery,
         }
         return request.render('wasm_website.projects_page_template', values)
 
@@ -645,22 +372,17 @@ class WasmWebsiteController(http.Controller):
 
     def _wasm_extra_gallery(self, exclude_project=None, limit=12):
         """Photos from the media gallery (other projects / general), with a static fallback."""
-        domain = [('active', '=', True)]
+        domain = [('active', '=', True), ('show_in_gallery', '=', True), ('service_id', '=', False)]
         if exclude_project:
             domain += ['|', ('project_id', '=', False), ('project_id', '!=', exclude_project.id)]
         records = request.env['wasm.gallery.image'].sudo().search(domain, order='sequence, id desc', limit=limit)
         items = [{
+            'media': rec,
             'url': rec.wasm_image_url(),
             'caption': rec.name or '',
             'project': rec.project_id.name or '',
             'project_url': rec.project_id and '/projects/%s' % rec.project_id.id or '',
         } for rec in records]
-        if not items:
-            base = '/wasm_website/static/src/img/official_live_projects/'
-            for name in ('industrial_park_sudair.webp', 'nora_univ_1.webp', 'nora_univ_2.webp', 'gallery_img_1.webp',
-                         'gallery_img_2.webp', 'gallery_img_5.webp', 'gallery_img_6.webp', 'gallery_img_8.webp',
-                         'gallery_img_9.webp', 'gallery_img_10.webp', 'gallery_img_11.webp', 'gallery_img_14.webp'):
-                items.append({'url': base + name, 'caption': '', 'project': '', 'project_url': ''})
         return items
 
     @http.route('/wasm/project/<int:project_id>/media/<int:attachment_id>', type='http', auth='public')
@@ -668,24 +390,30 @@ class WasmWebsiteController(http.Controller):
         """Images uploaded in the project's media tab (only if they belong to that project)."""
         project = request.env['wasm.project'].sudo().browse(project_id)
         if not project.exists() or not project.active or attachment_id not in project.attachment_ids.ids:
-            return request.not_found()
+            raise request.not_found()
         attachment = request.env['ir.attachment'].sudo().browse(attachment_id)
         if not (attachment.mimetype or '').startswith('image/'):
-            return request.not_found()
+            raise request.not_found()
         return self._wasm_stream(attachment, 'datas', filename=attachment.name)
 
-    @http.route(['/contactus', '/contact-team'], type='http', auth='public', website=True)
+    @http.route('/contactus', type='http', auth='public', website=True)
+    def wasm_contactus(self, **kw):
+        return request.render('wasm_website.contact_page_template', {
+            'site_config': request.env['wasm.site.config'].sudo().get_config(),
+        })
+
+    @http.route('/contact-team', type='http', auth='public', website=True)
     def wasm_contact_team(self, **kw):
-        return request.render('wasm_website.contact_team_page_template', {})
+        return request.render('wasm_website.contact_team_page_template', {
+            'site_config': request.env['wasm.site.config'].sudo().get_config(),
+        })
 
     @http.route('/quote', type='http', auth='public', website=True)
     def wasm_quote(self, dept=None, service_id=None, **kw):
         services = request.env['wasm.service'].sudo().search(
             [('active', '=', True)], order='sequence, id'
         )
-        selected_service_id = False
-        if service_id and str(service_id).isdigit():
-            selected_service_id = int(service_id)
+        selected_service_id = _parse_service_id(service_id)
         values = {
             'services': services,
             'selected_dept': dept if dept in ALLOWED_DEPARTMENTS else 'sales',
@@ -725,24 +453,14 @@ class WasmWebsiteController(http.Controller):
             department = 'sales'
 
         details = _clean(post, 'details')
-
-        service_id = post.get('service_id')
-        service_id = int(service_id) if service_id and str(service_id).isdigit() else False
-
-        try:
-            area = max(0.0, min(float(post.get('area') or 0.0), 1e9))
-        except (ValueError, TypeError):
-            area = 0.0
-
-        try:
-            approx_budget = max(0.0, min(float(post.get('approx_budget') or 0.0), 1e12))
-        except (ValueError, TypeError):
-            approx_budget = 0.0
-
+        service_id = _parse_service_id(post.get('service_id'))
+        area = _parse_amount(post.get('area'), 1e9)
+        approx_budget = _parse_amount(post.get('approx_budget'), 1e12)
         expected_start_date = _parse_date(post.get('expected_start_date'))
 
-        # --- Create Quote Request ---
-        quote = request.env['wasm.quote.request'].sudo().create({
+        # --- Create Quote Request (e-mails are sent below, once the files are linked) ---
+        Quote = request.env['wasm.quote.request'].sudo().with_context(wasm_defer_notifications=True)
+        quote = Quote.create({
             'customer_name': customer_name,
             'phone': phone,
             'email': email,
@@ -756,6 +474,7 @@ class WasmWebsiteController(http.Controller):
             'expected_start_date': expected_start_date,
             'details': details,
             'state': 'new',
+            'client_ip': _client_ip(),
         })
 
         # --- Process File Uploads (PDF, BOQ, Images) with Security Validation ---
@@ -791,17 +510,14 @@ class WasmWebsiteController(http.Controller):
                 continue
 
             # Check the real content type, not only the extension
-            try:
-                from odoo.tools.mimetypes import guess_mimetype
-                sniffed = guess_mimetype(file_content[:4096]) or ''
-            except Exception:
-                sniffed = ''
+            sniffed = guess_mimetype(file_content[:4096]) or ''
             if sniffed in BLOCKED_MIMETYPES:
                 _logger.warning('Quote %s: Rejected file %s (content type %s)', quote.name, uploaded_file.filename, sniffed)
                 continue
 
             # Sanitize filename
-            safe_filename = os.path.basename(uploaded_file.filename.replace('\\', '/'))[:120]
+            safe_filename = _clean_text(os.path.basename(uploaded_file.filename.replace('\\', '/')),
+                                        single_line=True)[:120] or 'file%s' % ext.lower()
 
             attachment = request.env['ir.attachment'].sudo().create({
                 'name': safe_filename,
@@ -814,6 +530,7 @@ class WasmWebsiteController(http.Controller):
 
         if attachment_ids:
             quote.sudo().write({'attachment_ids': [(6, 0, attachment_ids)]})
+        quote._wasm_notify()
 
         return request.redirect(
             '/quote/thanks?token=%s' % quote.access_token
@@ -860,6 +577,8 @@ class WasmWebsiteController(http.Controller):
             'department': department,
             'details': details,
             'state': 'new',
+            'source': 'contact',
+            'client_ip': _client_ip(),
         })
 
         return request.redirect(f'/quote/thanks?token={quote.access_token}')
@@ -880,7 +599,8 @@ class WasmWebsiteController(http.Controller):
 
     @http.route('/location', type='http', auth='public', website=True)
     def wasm_location(self, **kw):
-        return request.render('wasm_website.location_page_template', {})
+        return request.render('wasm_website.location_page_template', {
+            'site_config': request.env['wasm.site.config'].sudo().get_config()})
 
     @http.route(list(SEO_REDIRECTS), type='http', auth='public', website=True, sitemap=False)
     def wasm_seo_redirect(self, **kw):
@@ -894,7 +614,11 @@ class WasmWebsiteController(http.Controller):
 
     @http.route('/robots.txt', type='http', auth='public', sitemap=False)
     def wasm_robots_txt(self, **kw):
-        base = request.httprequest.url_root.rstrip('/')
+        config = request.env['wasm.site.config'].sudo()
+        headers = [('Content-Type', 'text/plain; charset=utf-8'), ('Cache-Control', 'public, max-age=3600')]
+        if config.wasm_hide_from_search():
+            return request.make_response('User-agent: *\nDisallow: /\n', headers=headers)
+        base = config.wasm_base_url(request.httprequest.url_root)
         lines = [
             '# ARFA Construction & Specialized Systems',
             'User-agent: *',
@@ -912,18 +636,13 @@ class WasmWebsiteController(http.Controller):
                     'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended', 'Bingbot', 'CCBot'):
             lines += ['User-agent: %s' % bot, 'Allow: /', 'Disallow: /web', 'Disallow: /my', '']
         lines += ['Sitemap: %s/sitemap.xml' % base, '', '# Plain-language summary for AI tools: %s/llms.txt' % base]
-        return request.make_response('\n'.join(lines) + '\n', headers=[
-            ('Content-Type', 'text/plain; charset=utf-8'),
-            ('Cache-Control', 'public, max-age=3600'),
-        ])
+        return request.make_response('\n'.join(lines) + '\n', headers=headers)
 
     @http.route(['/llms.txt', '/.well-known/llms.txt'], type='http', auth='public', sitemap=False)
     def wasm_llms_txt(self, **kw):
         """Markdown summary of the company for AI assistants / AI search (llms.txt convention)."""
-        env = request.env
-        base = request.httprequest.url_root.rstrip('/')
-        cfg = env['wasm.site.config'].sudo().get_config()
-        text = cfg.wasm_llms_text(base)
+        cfg = request.env['wasm.site.config'].sudo().get_config()
+        text = cfg.wasm_llms_text(cfg.wasm_base_url(request.httprequest.url_root))
         return request.make_response(text, headers=[
             ('Content-Type', 'text/markdown; charset=utf-8'),
             ('Cache-Control', 'public, max-age=3600'),
@@ -962,3 +681,11 @@ class WasmWebsiteController(http.Controller):
         img = request.env['wasm.gallery.image'].sudo().browse(image_id)
         return self._wasm_stream(img, 'image',
                                  fallback_url='/wasm_website/static/src/img/official_live_projects/gallery_img_1.webp')
+
+
+class WasmWebsite(Website):
+
+    @http.route(sitemap=False)
+    def website_info(self, **kwargs):
+        """/website/info lists the installed apps and the Odoo version: not public on this site."""
+        raise NotFound()
