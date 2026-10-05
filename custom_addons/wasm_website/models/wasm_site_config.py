@@ -470,7 +470,12 @@ class WasmSiteConfig(models.Model):
         user_title = hasattr(main_object, '_fields') and 'website_meta_title' in main_object._fields \
             and main_object.sudo()[:1].website_meta_title
         if name and not user_title:
-            title = '%s | %s' % (name, brand) if path != '/' else '%s | %s' % (brand, name)
+            if path == '/':
+                title = '%s | %s' % (brand, name)
+            elif len(name) + len(brand) > 62:
+                title = '%s | %s' % (name, 'ARFA' if is_en else 'عرفة')   # keep long project/news titles short
+            else:
+                title = '%s | %s' % (name, brand)
         desc = ' '.join((desc or self.wasm_site_description(is_en) or '').split())
         if len(desc) > 300:
             desc = desc[:297].rsplit(' ', 1)[0] + '…'

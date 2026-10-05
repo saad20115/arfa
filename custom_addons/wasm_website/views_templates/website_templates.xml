@@ -372,7 +372,9 @@
         <xpath expr="//head/*[1]" position="before">
             <t t-set="arfa_is_en" t-value="request.env.lang and request.env.lang.startswith('en') or False"/>
             <t t-set="arfa_meta" t-value="request.env['wasm.site.config'].sudo().get_config().wasm_page_meta(request.httprequest.path, arfa_is_en, main_object=main_object, project=project, article=article, service_info=service_info)"/>
-            <t t-if="not title and arfa_meta.get('title')" t-set="title" t-value="arfa_meta['title']"/>
+            <t t-if="arfa_meta.get('title')" t-set="title" t-value="arfa_meta['title']"/>
+            <!-- Odoo only fills seo_object inside its own "no title" branch; without it there are no Open Graph tags -->
+            <t t-set="seo_object" t-value="seo_object or main_object"/>
             <t t-set="website_meta_description" t-value="website_meta_description or arfa_meta.get('description')"/>
         </xpath>
         <xpath expr="//t[@t-set='meta_description']" position="after">
