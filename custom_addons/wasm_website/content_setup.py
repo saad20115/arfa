@@ -332,6 +332,23 @@ def wasm_seo_housekeeping(env):
     return changes
 
 
+def wasm_fix_menu_visibility(env):
+    """Menus of URLs answered by this module's controllers must not depend on a website.page record.
+
+    Odoo hides a menu from visitors when its linked page is unpublished; old databases link
+    "About us", "Our company" and the service menus to such duplicate pages, so visitors saw
+    only Home / Projects / News. The URL of the menu is kept, only the page link is removed.
+    """
+    urls = _controller_urls()
+    Menu = env['website.menu'].sudo().with_context(active_test=False)
+    menus = Menu.search([('page_id', '!=', False)]).filtered(
+        lambda m: not m.page_id.is_published and (m.url in urls or m.page_id.url in urls))
+    if menus:
+        _logger.info('wasm_website: menus unlinked from unpublished duplicate pages: %s', menus.mapped('url'))
+        menus.write({'page_id': False})
+    return menus.ids
+
+
 def wasm_optimize_existing_images(env):
     """Re-encode oversized images already stored in the website records."""
     total = 0
